@@ -28,7 +28,7 @@ In scope: admin and kid accounts, credits and debits, withdrawal requests with h
 | The parent is the recovery path | Kids never reset themselves. A locked kid is unlocked by a parent. |
 | Email is optional, never required | Every notification exists in the app first. SMTP only delivers a copy. |
 | Storage is a seam, not a fork | One `Store` interface and one contract test suite, run against SQLite and Postgres in CI. |
-| Defer every optional subsystem | Ship the seam (JSON API, web push, OIDC) and leave the implementation for later. |
+| Defer every optional subsystem | Ship the seam (web push, OIDC) and leave the implementation for later. The JSON API and MCP server have since been built ([ADR 0015](../adr/0015-json-api-bearer-tokens.md), [0016](../adr/0016-mcp-server-on-the-api.md)). |
 
 ## 3. Architecture
 
@@ -110,6 +110,7 @@ Nothing here defends against a hostile network operator. TLS at the reverse prox
 - Use `Lax`, not `Strict`: a parent tapping "Review request" in an email must land signed in.
 - `Lax` allows top-level GETs, so every state-changing request is a POST that carries a CSRF token. HTMX sends it via `hx-headers` from a `<meta>` tag.
 - Logout and "sign out everywhere" revoke the rows. An admin can revoke any kid's sessions, which covers the shared tablet.
+- The JSON API and MCP server don't use cookies or CSRF. They take bearer tokens (`gb_…`) minted by an admin, stored as SHA-256 hashes, with `read` / `write` / `money` scopes, per-token rate limits and a block on addresses that send bad tokens ([ADR 0015](../adr/0015-json-api-bearer-tokens.md)).
 
 ### 4.3 Authorization rules
 
@@ -354,6 +355,9 @@ sessions(id_hash PK, user_id, device_label, remember,
 
 auth_attempts(user_id PK, failures, window_start, next_allowed_at, locked_at)
 
+api_tokens(id PK, token_hash UNIQUE, user_id, label, scopes,
+           created_at, last_used_at, revoked_at)   -- ADR 0015; SHA-256 only, owned by an admin
+
 -- Money
 jars(id, kid_id, name, kind,           -- spend | save | give | invest | custom
      sort_order, archived_at)
@@ -474,6 +478,8 @@ The app is server-rendered with Go `html/template`, and HTMX swaps fragments. HT
 | `/admin/users/*` | Admin | Add a kid or admin, reset a PIN or password, unlock, disable, revoke sessions |
 | `/admin/settings/*` | Admin | Household, jars and split rules, schedules, interest, email and SMTP test, export |
 | `GET /notifications`, `GET /notifications/count`, `POST /notifications/read` | Signed in | The bell |
+| `/api/v1/*` | Bearer token | The JSON API: reads, jar/goal edits, entries, batches, reversals, transfers, request decisions. Spec at `GET /api/v1/openapi.json` |
+| `POST /mcp` | Bearer token | MCP server (opt-in, `GOLDBERRY_MCP_ENABLED`); tools filtered by scope |
 | `GET /healthz`, `GET /readyz`, `GET /metrics` | Unauthenticated | Liveness, DB readiness, Prometheus |
 
 The kid routes sit at the root because a kid's home screen is the product; admin routes sit under `/admin`. Middleware enforces the role on every route group.
@@ -512,6 +518,7 @@ Configuration is env vars only, and a `/data/config.env` file is optional. Every
 | `GOLDBERRY_LISTEN` | `:8080` |  |
 | `GOLDBERRY_TRUSTED_PROXIES` | *(none)* | CIDRs whose `X-Forwarded-*` headers are trusted |
 | `GOLDBERRY_INSECURE_COOKIES` | `false` | Drops the cookie `Secure` flag for plain-HTTP testing. Logs a warning on every start. |
+| `GOLDBERRY_MCP_ENABLED` | `false` | Serve the MCP server at `/mcp` (ADR 0016). The JSON API is always on; both need a token. |
 | `GOLDBERRY_BACKUP_SCHEDULE` / `_RETAIN` | `03:15` / `14` | SQLite snapshots (§12.5) |
 | `GOLDBERRY_SMTP_HOST`, `_PORT`, `_SECURITY`, `_USERNAME`, `_PASSWORD`, `_FROM` | *(none)* | Override and lock the UI's email settings. `_PASSWORD_FILE` is also accepted, for Docker and K8s secrets. |
 | `GOLDBERRY_LOG_FORMAT` | `json` | `json` or `text` (`log/slog`) |
@@ -573,6 +580,7 @@ goldberry/
 │   ├── money/                # minor units, parse/format, split with remainder
 │   ├── auth/                 # argon2id, sessions, throttling, CSRF
 │   ├── service/              # ledger, requests, goals, schedules, interest (domain rules)
+│   ├── api/                  # JSON API (/api/v1) and MCP server (/mcp); calls service only
 │   ├── scheduler/            # in-process ticker: allowance, interest, request expiry, backups
 │   ├── notify/               # notifications, Notifier interface, smtp, outbox worker
 │   ├── store/                # Store interface
@@ -629,7 +637,7 @@ Each phase ends with something the family can use. Phase 1 alone replaces a spre
 5. **Phase 4: Jars & recurring allowance.** Configurable jars, split rules with remainder handling, transfers, schedules with catch-up, and pause. *Exit:* Saturday's allowance posts split 70/20/10 with no one touching it, including after a reboot on Friday night.
 6. **Phase 5: Goals & interest.** Goals waterfall, goal-reached notifications, "Ask to buy it", monthly interest on average daily balance with a cap, and the 12-month projection.
 7. **Phase 6: v1.0 release shape.** Helm chart and OCI publish, built-in backups and tested restore, export/import, PWA manifest, cosign/SBOM, docs (`install`, `upgrade`, `backup-restore`, `troubleshooting`), and README screenshots.
-8. **Later.** Web push, a `/api/v1` JSON API, a Home Assistant integration, an ntfy/webhook notifier, OIDC for admins (Authentik/Pocket ID), parent-matching on goals, i18n, and chore tracking ("earn by task").
+8. **Later.** Web push, a Home Assistant integration (the `/api/v1` JSON API and MCP server now exist), an ntfy/webhook notifier, OIDC for admins (Authentik/Pocket ID), parent-matching on goals, i18n, and chore tracking ("earn by task").
 
 ## 15. Risks, decisions & open questions
 
@@ -668,7 +676,7 @@ Each phase ends with something the family can use. Phase 1 alone replaces a spre
 | Migrations at startup | One binary, one replica; advisory lock on Postgres |
 | Interest on average daily balance | Removes end-of-month deposit gaming |
 | Goals are views over a jar | Money never gets stranded inside a goal |
-| No Redis, IdP, SPA or JSON API in v1 | Defer every optional subsystem; ship the seams |
+| No Redis, IdP or SPA in v1; JSON API and MCP added in 1.2 | Defer every optional subsystem; ship the seams (the API arrived on that seam with no refactor) |
 | Kids move money freely; locks restrict | Autonomy by default; restriction is an explicit, visible choice |
 | Self-locks are soft, admin locks are hard | Kids practise commitment without being trapped by it; parents keep authority |
 | Approve = handed over, not tracked separately | The app records decisions; it can't see cash change hands |
