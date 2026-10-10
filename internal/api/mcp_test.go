@@ -195,6 +195,9 @@ func TestMCPMoneyTools(t *testing.T) {
 	if tot, _ := e.balance(t, "leo"); tot != 0 {
 		t.Fatal("a failed batch posted its first item")
 	}
+	if msg := call(t, cs, "post_entry", map[string]any{"kid": "ava", "amount": 99999, "direction": "remove", "idempotency_key": "mcp-4", "dry_run": false}, nil); strings.Contains(msg, "item") || !strings.HasPrefix(msg, "insufficient_funds:") {
+		t.Fatalf("a single entry's error should not say item: %q", msg)
+	}
 	if msg := call(t, cs, "post_entry", map[string]any{"kid": "ava", "amount": 5}, nil); !strings.Contains(msg, "idempotency") {
 		t.Fatalf("missing key: %q", msg)
 	}

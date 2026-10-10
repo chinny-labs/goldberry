@@ -29,7 +29,7 @@ Kids are named by username (`ava`). Amounts are minor units (cents for USD).
 - **They default to a dry run.** `post_entry`, `post_entries`, `reverse_entry` and `decide_request` show what would happen and change nothing until the tool is called again with `dry_run: false`. A good prompt is "show me what you'd post, and wait for my OK."
 - **Postings need an `idempotency_key`.** Reusing a key retries safely: nothing posts twice. The tool descriptions tell the model to pick stable keys that name the payment.
 - **Batches are all-or-nothing** (up to 100 entries); an error names the item to fix.
-- **Everything is audited** with the token's name, on the parent's **Account history**.
+- **Everything is audited** with the token's label, under **Account history** on the *kid's* page (People → the kid): `api.entry · Mom via “Claude”`.
 
 Moving money between jars isn't offered over MCP; use the [API](api.md) for that.
 

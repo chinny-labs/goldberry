@@ -353,6 +353,9 @@ func (a *API) mcpPost(ctx context.Context, p *principal, items []postEntryItem, 
 	inputs := make([]service.EntryInput, 0, len(items))
 	for i, it := range items {
 		fail := func(err error) (*mcp.CallToolResult, previewOut, error) {
+			if len(items) == 1 {
+				return nil, previewOut{}, a.toolError(err)
+			}
 			return nil, previewOut{}, a.toolError(&service.BatchError{Index: i, Err: err})
 		}
 		k, err := a.svc.ResolveKid(ctx, it.Kid)
@@ -373,6 +376,9 @@ func (a *API) mcpPost(ctx context.Context, p *principal, items []postEntryItem, 
 	d := dryRun(dry)
 	res, err := a.svc.PostEntries(ctx, p.User, inputs, d)
 	if err != nil {
+		if len(items) == 1 { // a lone entry isn't "item 1"
+			err = unwrapBatch(err)
+		}
 		return nil, previewOut{}, a.toolError(err)
 	}
 	out := previewOut{DryRun: d, Results: make([]entriesOut, 0, len(res))}
