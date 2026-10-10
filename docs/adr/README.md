@@ -16,3 +16,5 @@
 | [0012](0012-release-images-with-buildx.md) | Release images are built with the Dockerfile and buildx, not ko |
 | [0013](0013-server-drawn-svg-charts.md) | Charts are SVG drawn on the server |
 | [0014](0014-simulated-brokerage-real-prices.md) | Investing is a simulated brokerage at real prices, with parent-paid profit |
+| [0015](0015-json-api-bearer-tokens.md) | JSON API at /api/v1 with household bearer tokens (read / write / money scopes) |
+| [0016](0016-mcp-server-on-the-api.md) | MCP server (opt-in, streamable HTTP) layered on the service layer |

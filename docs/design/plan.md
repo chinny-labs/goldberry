@@ -478,7 +478,7 @@ The app is server-rendered with Go `html/template`, and HTMX swaps fragments. HT
 
 The kid routes sit at the root because a kid's home screen is the product; admin routes sit under `/admin`. Middleware enforces the role on every route group.
 
-**JSON API: seam only.** Handlers call a `service` layer, never the store directly, so a `/api/v1` (for Home Assistant, a phone widget, or scripts) can be added later with no refactor. It isn't built in v1.
+**JSON API.** Handlers call a `service` layer, never the store directly, so `/api/v1` (for Home Assistant, a phone widget, scripts and AI harnesses) is a sibling of the web handlers with no refactor. Bearer tokens with `read` / `write` / `money` scopes: [ADR 0015](../adr/0015-json-api-bearer-tokens.md). An opt-in MCP server at `/mcp` sits on the same layer: [ADR 0016](../adr/0016-mcp-server-on-the-api.md).
 
 ### 11.2 UI notes
 
