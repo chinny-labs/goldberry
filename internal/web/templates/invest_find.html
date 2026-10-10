@@ -1,0 +1,33 @@
+{{define "width"}} narrow{{end}}
+{{define "main"}}
+{{$v := .}}{{$d := .D}}
+<form method="get" action="/invest/find" class="stack-sm" role="search">
+  <label for="q"><strong>Search by name or symbol</strong> {{template "tip" (tip "symbol")}}</label>
+  <div class="row">
+    <input id="q" name="q" value="{{$d.Query}}" placeholder="Apple, Disney, VTI…" autocomplete="off" spellcheck="false" class="grow">
+    <button class="btn btn-primary btn-auto" type="submit">Search</button>
+  </div>
+</form>
+{{if $d.Query}}
+<section class="stack">
+  <h2>Results</h2>
+  {{if $d.Results}}
+  <ul class="list">
+    {{range $d.Results}}
+    <li>
+      <div class="what"><strong><a href="/invest/stocks/{{.Symbol}}">{{.Name}}</a></strong><span class="meta"><span class="kind-badge kind-{{.Kind}}">{{if eq (print .Kind) "fund"}}Fund{{else}}Stock{{end}}</span> {{.Symbol}}</span></div>
+    </li>
+    {{end}}
+  </ul>
+  {{else if not $v.Err}}
+  <p class="card empty-state">Nothing found for “{{$d.Query}}”. Try the company’s name, like “Lego” or “Coca-Cola”.</p>
+  {{end}}
+</section>
+{{end}}
+<section class="stack">
+  <h2>Funds: lots of companies at once {{template "tip" (tip "fund")}}</h2>
+  {{template "picks" (pair $v $d.Funds)}}
+  <h2>Companies you might know {{template "tip" (tip "stock")}}</h2>
+  {{template "picks" (pair $v $d.Stocks)}}
+</section>
+{{end}}

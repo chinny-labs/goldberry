@@ -68,6 +68,17 @@
   </div>
   <aside class="stack-lg">
     {{with .D.Preview}}{{template "graph-preview" (pair $v .)}}{{end}}
+    {{with .D.Invest}}
+    <section class="card stack">
+      <div class="spread"><h2>Investing</h2><a href="/admin/kids/{{$kid.ID}}/invest">See all</a></div>
+      <div class="row-wrap invest-stats">
+        <div><span class="caption">Ready to invest</span><div class="money-m">{{$v.Money .Jar.Available}}</div></div>
+        <div><span class="caption">Invested, worth now</span><div class="money-m">{{$v.Money .Value}}</div>{{if .Holdings}}<span class="small">paid {{$v.Money .Cost}} · {{template "gain" (pair $v .Gain)}}</span>{{end}}</div>
+      </div>
+      {{if .Queued}}<p class="small">{{len .Queued}} order{{if gt (len .Queued) 1}}s{{end}} waiting for the market.</p>{{end}}
+      {{if .Owed}}<p class="small"><strong>You owe {{$kid.DisplayName}} {{$v.Money .OwedTotal}}</strong> in profit from selling. Paying it adds it to the jar.</p>{{template "earnings" (pair $v .Owed)}}{{end}}
+    </section>
+    {{end}}
     <section class="card stack">
       <div class="spread"><h2>Allowance</h2><a href="/admin/kids/{{$kid.ID}}/allowance">Add</a></div>
       {{range .D.Schedules}}

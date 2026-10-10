@@ -29,6 +29,7 @@ type adminKidData struct {
 	Login     service.LoginState
 	Overrides []store.LockOverride
 	Preview   *graphPreview
+	Invest    *service.Portfolio // when the kid has an Invest jar
 }
 
 func (s *Server) loadKid(w http.ResponseWriter, r *http.Request) (service.KidView, bool) {
@@ -61,7 +62,18 @@ func (s *Server) adminKid(w http.ResponseWriter, r *http.Request, c *reqCtx) {
 		s.serverError(w, r, err)
 		return
 	}
-	v := s.newView(w, r, kv.Kid.DisplayName, adminKidData{KidView: kv, Ledger: ledger, JarFilter: jarFilter,
+	var invest *service.Portfolio
+	for _, j := range kv.Jars {
+		if j.Kind == store.JarInvest {
+			p, err := s.svc.Portfolio(ctx, kv.Kid.ID)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			invest = &p
+		}
+	}
+	v := s.newView(w, r, kv.Kid.DisplayName, adminKidData{Invest: invest, KidView: kv, Ledger: ledger, JarFilter: jarFilter,
 		Login: states[kv.Kid.ID], Overrides: s.lockActivity(r, kv.Kid.ID), Preview: s.previewChart(ctx, c, kv.Kid.ID, "/admin/kids/"+kv.Kid.ID+"/graph")})
 	v.Nav, v.Back = "kid:"+kv.Kid.ID, "/admin"
 	s.render(w, r, http.StatusOK, "admin_kid", v)
@@ -369,8 +381,18 @@ func (s *Server) userRevoke(w http.ResponseWriter, r *http.Request, c *reqCtx) {
 
 // --- settings ------------------------------------------------------------------
 
+type settingsData struct{ Invest service.InvestStatus }
+
+func (s *Server) settingsData(r *http.Request) settingsData {
+	st, err := s.svc.InvestingStatus(r.Context())
+	if err != nil {
+		s.log.Warn("investing status", "err", err)
+	}
+	return settingsData{Invest: st}
+}
+
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request, c *reqCtx) {
-	v := s.newView(w, r, "Settings", nil)
+	v := s.newView(w, r, "Settings", s.settingsData(r))
 	v.Nav = "settings"
 	h := c.House
 	v.Form.Set("name", h.Name)
@@ -400,7 +422,7 @@ func (s *Server) settingsSubmit(w http.ResponseWriter, r *http.Request, c *reqCt
 			s.serverError(w, r, err)
 			return
 		}
-		v := s.newView(w, r, "Settings", nil)
+		v := s.newView(w, r, "Settings", s.settingsData(r))
 		v.Nav, v.Err, v.Form = "settings", msg, f
 		s.render(w, r, http.StatusUnprocessableEntity, "settings", v)
 		return

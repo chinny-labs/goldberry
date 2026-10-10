@@ -15,3 +15,4 @@
 | [0011](0011-server-enforced-gauntlet.md) | The lock-breaking gauntlet is enforced by the server |
 | [0012](0012-release-images-with-buildx.md) | Release images are built with the Dockerfile and buildx, not ko |
 | [0013](0013-server-drawn-svg-charts.md) | Charts are SVG drawn on the server |
+| [0014](0014-simulated-brokerage-real-prices.md) | Investing is a simulated brokerage at real prices, with parent-paid profit |

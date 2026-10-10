@@ -29,6 +29,7 @@ type Config struct {
 	LogFormat       string // json | text
 	Timezone        string // default household timezone at setup
 	SMTP            SMTP
+	FinnhubKey      string // market prices for investing; investing stays off without it
 }
 
 // SMTP holds env-var overrides for email settings. Empty fields are unset.
@@ -88,6 +89,7 @@ func parse(lookup func(string) (string, bool)) (Config, error) {
 		BackupSchedule: str("GOLDBERRY_BACKUP_SCHEDULE", "03:15"),
 		LogFormat:      str("GOLDBERRY_LOG_FORMAT", "json"),
 		Timezone:       str("TZ", "UTC"),
+		FinnhubKey:     str("GOLDBERRY_FINNHUB_API_KEY", ""),
 		SMTP: SMTP{
 			Host:     str("GOLDBERRY_SMTP_HOST", ""),
 			Port:     str("GOLDBERRY_SMTP_PORT", ""),

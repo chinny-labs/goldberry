@@ -71,6 +71,11 @@ var exportTables = []exportTable{
 	{"jar_locks", cols("id jar_id to_jar_id set_by_role set_by reason until_date created_at:t removed_by removed_at:t"), "created_at, id"},
 	{"lock_overrides", cols("id lock_id kid_id action ledger_entry_id request_id created_at:t"), "created_at, id"},
 	{"interest_rules", cols("kid_id jar_id monthly_bps:i monthly_cap:i active:b"), "kid_id, jar_id"},
+	// Investing. Quotes are a cache and are fetched again.
+	{"securities", cols("symbol name kind updated_at:t"), "symbol"},
+	{"orders", cols("id kid_id jar_id symbol side amount:i shares:i status price:i proceeds:i cost_basis:i ledger_entry_id placed_by idempotency_key created_at:t filled_at:t cancelled_at:t"), "created_at, id"},
+	{"payouts", cols("id kid_id jar_id order_id amount:i status paid_by paid_at:t ledger_entry_id created_at:t"), "created_at, id"},
+	{"portfolio_snapshots", cols("kid_id day value:i cost:i"), "kid_id, day"},
 	{"notifications", cols("id recipient_id kind payload request_id read_at:t created_at:t"), "created_at, id"},
 	{"notification_prefs", cols("user_id kind email:b"), "user_id, kind"},
 	{"settings", cols("key value secret:b"), "key"},

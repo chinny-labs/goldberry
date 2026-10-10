@@ -165,8 +165,9 @@ func (s *Service) KidOverview(ctx context.Context, kidID string, recent int) (Ki
 
 // Dashboard is the admin home: the pending queue plus a card per kid.
 type Dashboard struct {
-	Pending []store.WithdrawalRequest
-	Kids    []KidView
+	Pending  []store.WithdrawalRequest
+	Kids     []KidView
+	Earnings []store.Payout // investing profit the parents still owe
 }
 
 // AdminDashboard loads the admin home.
@@ -174,6 +175,9 @@ func (s *Service) AdminDashboard(ctx context.Context) (Dashboard, error) {
 	var d Dashboard
 	var err error
 	if d.Pending, err = s.Store.ListRequests(ctx, store.RequestFilter{Status: store.StatusPending}); err != nil {
+		return d, err
+	}
+	if d.Earnings, err = s.Earnings(ctx, ""); err != nil {
 		return d, err
 	}
 	kids, err := s.Store.ListUsers(ctx, store.RoleKid)

@@ -14,15 +14,19 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/chinny/goldberry/internal/market"
 	"github.com/chinny/goldberry/internal/money"
 	"github.com/chinny/goldberry/internal/store"
 )
 
 // Service is the domain layer.
 type Service struct {
-	Store store.Store
-	Now   func() time.Time
-	Log   *slog.Logger
+	Store  store.Store
+	Now    func() time.Time
+	Log    *slog.Logger
+	Market market.Provider // nil: no price feed, so investing stays off
+
+	invest investCache
 }
 
 // New returns a Service using the wall clock.

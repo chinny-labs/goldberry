@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/chinny/goldberry/internal/market"
 	"github.com/chinny/goldberry/internal/service"
 	"github.com/chinny/goldberry/internal/store"
 )
@@ -36,6 +38,26 @@ func Busy(t *testing.T, f *Fixture) {
 	_, err = f.Svc.CreateSchedule(ctx, f.Mom, f.Ava.ID, service.ScheduleInput{Amount: 1000, Cadence: "weekly", Weekday: 6})
 	must(t, err)
 	must(t, f.Svc.SetInterest(ctx, f.Mom, f.Ava.ID, j[store.JarSave].ID, 100, 500, true))
+
+	// Investing: a profitable sale (earnings owed) and an order waiting overnight.
+	fake := market.NewFake()
+	fake.Add(market.Security{Symbol: "AAPL", Name: "Apple Inc.", Kind: market.Stock}, 200*dollar, 200*dollar)
+	f.Svc.Market = fake
+	_, err = f.Svc.SetInvesting(ctx, f.Mom, true)
+	must(t, err)
+	_, err = f.Svc.PostEntry(ctx, f.Mom, service.EntryInput{KidID: f.Ava.ID, JarID: f.jars(t, f.Ava)[store.JarInvest].ID, Amount: 3000})
+	must(t, err)
+	fake.SetOpen(true)
+	_, err = order(t, f, f.Ava, store.SideBuy, "AAPL", 2000, false)
+	must(t, err)
+	fake.Set("AAPL", 300*dollar)
+	f.Clock.Advance(2 * time.Minute)
+	_, err = order(t, f, f.Ava, store.SideSell, "AAPL", 600, false)
+	must(t, err)
+	fake.SetOpen(false)
+	f.Clock.Advance(2 * time.Minute)
+	_, err = order(t, f, f.Ava, store.SideBuy, "AAPL", 500, false)
+	must(t, err)
 }
 
 func snapshot(t *testing.T, ctx context.Context, st store.Reader, kids ...store.User) map[string]int64 {
@@ -93,6 +115,11 @@ func testExportImport(t *testing.T, open Opener) {
 		must(t, err)
 		if len(v.Goals) != 1 || len(v.Schedules) != 1 || v.Jars[1].SelfLock() == nil || v.Interest[v.Jars[1].ID].MonthlyCap != 500 {
 			t.Fatalf("lost goals/schedules/locks/interest: %+v", v)
+		}
+		p, err := svc.Portfolio(ctx, f.Ava.ID)
+		must(t, err)
+		if len(p.Holdings) != 1 || p.Holdings[0].Shares != 80_000 || p.Cost != 1600 || len(p.Owed) != 1 || p.Owed[0].Amount != 200 || len(p.Queued) != 1 {
+			t.Fatalf("lost investments: %+v", p)
 		}
 		// A second import is refused: the database isn't empty any more.
 		if _, err := dst.Import(ctx, bytes.NewReader(dump.Bytes())); !errors.Is(err, store.ErrNotEmpty) {

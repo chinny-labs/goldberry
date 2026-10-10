@@ -16,6 +16,7 @@
       <span class="jar-name">{{.Name}}</span>
       <div class="money-l">{{$v.Money .Available}}</div>
       {{if .Held}}<div class="held small">{{$v.Money .Held}} waiting</div>{{end}}
+      {{if and (eq (print .Kind) "invest") $v.InvestOn}}<a class="jar-action" href="/invest">{{template "i-invest"}} Invest it</a>{{end}}
       {{if .Locked}}{{template "lock-badge" (pair $v .)}}{{else}}<a class="jar-action" href="/jars/{{.ID}}/lock">{{template "i-lock"}} Lock it</a>{{end}}
     </div>
     {{end}}{{end}}

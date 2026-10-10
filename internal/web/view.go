@@ -36,6 +36,7 @@ type view struct {
 	Commit    string
 	SourceURL string
 	Now       time.Time
+	InvestOn  bool // investing is ready: show the Invest nav
 	D         any
 }
 
@@ -75,11 +76,13 @@ var funcs = template.FuncMap{
 	"neg": func(v int64) int64 { return -v },
 	"jarClass": func(k store.JarKind) string {
 		switch k {
-		case store.JarSpend, store.JarSave, store.JarGive:
+		case store.JarSpend, store.JarSave, store.JarGive, store.JarInvest:
 			return string(k)
 		}
 		return "custom"
 	},
+	// tip looks up an investing tip by key (tips.go).
+	"tip": func(key string) tip { return tipsByKey[key] },
 }
 
 func (s *Server) newView(w http.ResponseWriter, r *http.Request, title string, d any) *view {
@@ -90,6 +93,9 @@ func (s *Server) newView(w http.ResponseWriter, r *http.Request, title string, d
 	if c.User != nil {
 		ctx := r.Context()
 		v.Unread, _ = s.svc.UnreadCount(ctx, *c.User)
+		if st, err := s.svc.InvestingStatus(ctx); err == nil {
+			v.InvestOn = st.Ready()
+		}
 		if c.User.IsAdmin() {
 			kids, _ := s.svc.Store.ListUsers(ctx, store.RoleKid)
 			for _, k := range kids {
@@ -131,6 +137,27 @@ func (v *view) Money(amount int64) string  { return v.Cur.Format(amount) }
 func (v *view) Signed(amount int64) string { return v.Cur.Signed(amount) }
 func (v *view) Plain(amount int64) string  { return v.Cur.Plain(amount) }
 func (v *view) Symbol() string             { return v.Cur.Symbol }
+
+// Price shows a micro-dollar price to the cent: "$227.52".
+func (v *view) Price(micro int64) string { return v.Cur.Format((micro + 5_000) / 10_000) }
+
+// Shares shows micro-shares as a short decimal: "0.05", "1.2346", "12".
+func (v *view) Shares(micro int64) string {
+	if micro > 0 && micro < 100 {
+		return "less than 0.0001"
+	}
+	s := strconv.FormatFloat(float64(micro)/service.MicroShares, 'f', 4, 64)
+	s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
+	return s
+}
+
+// ShareWord is "share" or "shares" for a micro-share count.
+func (v *view) ShareWord(micro int64) string {
+	if micro == service.MicroShares {
+		return "share"
+	}
+	return "shares"
+}
 
 func (v *view) loc() *time.Location { return v.House.Location() }
 
@@ -205,7 +232,11 @@ type ledgerRow struct {
 
 // Reversible reports whether the row gets an Undo button.
 func (r ledgerRow) Reversible() bool {
-	return !r.AllReversed && !r.IsMove && r.Kind != store.KindReversal
+	switch r.Kind {
+	case store.KindReversal, store.KindInvestBuy, store.KindInvestSell, store.KindInvestGain:
+		return false // investing rows change only through orders and payouts
+	}
+	return !r.AllReversed && !r.IsMove
 }
 
 func groupLedger(entries []store.LedgerEntry) []ledgerRow {

@@ -98,6 +98,19 @@ type Reader interface {
 	// BalancesBefore is each of a kid's jars' balance (archived ones too)
 	// from entries effective before t, by jar ID. Jars with no entries are absent.
 	BalancesBefore(ctx context.Context, kidID string, t time.Time) (map[string]int64, error)
+	GetSecurity(ctx context.Context, symbol string) (Security, error)
+	GetQuote(ctx context.Context, symbol string) (Quote, error)
+	GetOrder(ctx context.Context, id string) (Order, error)
+	GetOrderByKey(ctx context.Context, key string) (Order, error)
+	// ListOrders lists orders newest first, oldest first when queued only.
+	ListOrders(ctx context.Context, f OrderFilter) ([]Order, error)
+	GetPayout(ctx context.Context, id string) (Payout, error)
+	// ListPayouts lists a kid's payouts (every kid's when kidID is ""),
+	// newest first; status "" matches both.
+	ListPayouts(ctx context.Context, kidID, status string) ([]Payout, error)
+	// ListSnapshots lists a kid's daily snapshots in [fromDay, toDay], oldest first.
+	ListSnapshots(ctx context.Context, kidID, fromDay, toDay string) ([]Snapshot, error)
+
 	// JarEntriesBetween lists a jar's amounts effective in [from, to), oldest first.
 	JarEntriesBetween(ctx context.Context, jarID string, from, to time.Time) ([]DatedAmount, error)
 }
@@ -154,4 +167,18 @@ type Writer interface {
 	MarkNotificationsRead(ctx context.Context, recipientID string, ids []string, at time.Time) error
 
 	InsertAudit(ctx context.Context, a AuditEntry) error
+
+	PutSecurity(ctx context.Context, s Security) error
+	PutQuote(ctx context.Context, q Quote) error
+	// InsertOrder reports false, with no error, on a reused idempotency key.
+	InsertOrder(ctx context.Context, o Order) (bool, error)
+	// FillOrder records a queued order's fill. It reports false when the
+	// order was no longer queued.
+	FillOrder(ctx context.Context, o Order) (bool, error)
+	// CancelOrder reports false when the order was no longer queued.
+	CancelOrder(ctx context.Context, id string, at time.Time) (bool, error)
+	InsertPayout(ctx context.Context, p Payout) error
+	// PayPayout reports false when the payout was already paid.
+	PayPayout(ctx context.Context, p Payout) (bool, error)
+	PutSnapshot(ctx context.Context, s Snapshot) error
 }

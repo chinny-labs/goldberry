@@ -1,0 +1,72 @@
+{{define "width"}} narrow{{end}}
+{{define "main"}}
+{{$v := .}}{{$d := .D}}{{$q := $d.Quote}}{{$sym := $d.Sec.Symbol}}
+<section class="card stack">
+  <div class="spread">
+    <span class="kind-badge kind-{{$d.Sec.Kind}}">{{if eq $d.Sec.Kind "fund"}}Fund{{else}}Stock{{end}} {{if eq $d.Sec.Kind "fund"}}{{template "tip" (tip "fund")}}{{else}}{{template "tip" (tip "stock")}}{{end}}</span>
+    <span class="small muted">Symbol {{$sym}} {{template "tip" (tip "symbol")}}</span>
+  </div>
+  {{if $d.HasQuote}}
+  <div>
+    <span class="caption">Price for one share {{template "tip" (tip "price")}}</span>
+    <div class="money-l">{{$v.Price $q.Price}}</div>
+    {{if $d.Change}}<span>{{template "gain" (pair $v $d.ChangeCents)}} <span class="small muted">({{$d.ChangePct}}) today</span> {{template "tip" (tip "today")}}</span>{{end}}
+    {{if $d.Stale}}<p class="small held-ink">This price is a little old: we couldn’t get a fresh one.</p>{{end}}
+  </div>
+  {{else}}
+  <p class="muted">No price right now. Try again in a minute.</p>
+  {{end}}
+  {{if $d.Owns}}{{$h := $d.Holding}}
+  <div class="owns">
+    <p><strong>You own {{$v.Shares $h.Shares}} {{$v.ShareWord $h.Shares}}</strong>, worth {{$v.Money $h.Value}}.</p>
+    <p class="small">You paid {{$v.Money $h.Cost}} · {{template "gain" (pair $v $h.Gain)}}</p>
+  </div>
+  {{end}}
+</section>
+
+{{if not $d.P.Status.Ready}}
+<p class="card empty-state">Investing is turned off right now.</p>
+{{else if not $d.P.HasJar}}
+<p class="card empty-state">You need an Invest jar first. Ask a grown-up.</p>
+{{else}}
+{{if not $d.P.Market.Open}}<div class="alert alert-info small"><span aria-hidden="true">☾</span> The market is closed, so orders wait and go through at the opening price. {{template "tip" (tip "market")}}</div>{{end}}
+
+<form method="post" action="/invest/orders" class="card stack">
+  {{template "csrf" $v}}
+  <input type="hidden" name="key" value="{{$d.Key}}">
+  <input type="hidden" name="symbol" value="{{$sym}}">
+  <input type="hidden" name="side" value="buy">
+  <h2>Buy</h2>
+  <div class="field">
+    <label for="buy-amount">How much do you want to spend? {{template "tip" (tip "fraction")}}</label>
+    <div class="amount-input"><span aria-hidden="true">{{$v.Symbol}}</span><input id="buy-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="5.00" value="{{if eq ($v.Val "side") "buy"}}{{$v.Val "amount"}}{{end}}"></div>
+    <span class="hint">You have {{$v.Money $d.P.Jar.Available}} ready in your {{$d.P.Jar.Name}} jar.{{if $d.HasQuote}} One whole share is {{$v.Price $q.Price}}, but you can buy a slice.{{end}}</span>
+  </div>
+  <button class="btn btn-kid btn-block" type="submit">Buy {{$sym}}</button>
+</form>
+
+{{if and $d.Owns $d.Holding.Free}}
+<form method="post" action="/invest/orders" class="card stack">
+  {{template "csrf" $v}}
+  <input type="hidden" name="key" value="{{$v.NewKey}}">
+  <input type="hidden" name="symbol" value="{{$sym}}">
+  <input type="hidden" name="side" value="sell">
+  <h2>Sell</h2>
+  <div class="field">
+    <label for="sell-amount">How much do you want to sell?</label>
+    <div class="amount-input"><span aria-hidden="true">{{$v.Symbol}}</span><input id="sell-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="5.00" value="{{if eq ($v.Val "side") "sell"}}{{$v.Val "amount"}}{{end}}"></div>
+    <span class="hint">What you paid comes back to your jar now. If you sold for more than you paid, a grown-up pays you the extra. {{template "tip" (tip "earnings")}}</span>
+  </div>
+  <div class="row">
+    <button class="btn btn-outline btn-block grow" type="submit">Sell</button>
+    <button class="btn btn-outline btn-auto" type="submit" name="all" value="1">Sell all</button>
+  </div>
+</form>
+{{end}}
+
+<aside class="card trick" aria-label="Before you buy"><span class="trick-icon" aria-hidden="true">🤔</span>
+  <div><strong>Before you buy:</strong> prices go up <em>and</em> down. {{if eq $d.Sec.Kind "fund"}}A fund spreads your money over lots of companies.{{else}}This is just one company, so it can swing a lot. Owning a few different things is safer.{{end}} {{template "tip" (tip "risk")}}</div>
+</aside>
+{{end}}
+<p class="caption">Prices come from the real US stock market (via Finnhub) and can be a minute or so behind.</p>
+{{end}}

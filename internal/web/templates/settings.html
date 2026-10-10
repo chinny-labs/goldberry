@@ -29,4 +29,29 @@
   <label class="check"><input type="checkbox" name="allow_negative" value="1"{{if .Checked "allow_negative" "1"}} checked{{end}}> Let parents take a balance below zero (“you owe us for the window”)</label>
   <button class="btn btn-primary btn-block" type="submit">Save settings</button>
 </form>
+
+<section class="card stack" id="investing">
+  <h2>Investing</h2>
+  {{$st := .D.Invest}}
+  <p class="small">Kids buy and sell real US stocks and funds at real market prices, with the money in a fourth <strong>Invest</strong> jar. Buying takes money from that jar; selling puts back up to what they paid, so losses come off by themselves. Any profit waits for you to pay it. No real money moves: like every balance here, it’s money you hold for them. <a href="/invest/learn">What kids see</a></p>
+  {{if not $st.Configured}}
+  <p class="alert alert-info small">Prices come from Finnhub. Get a free API key at finnhub.io, set <code>GOLDBERRY_FINNHUB_API_KEY</code>, and restart. See <em>docs/operations/investing.md</em>.</p>
+  {{else if not $st.USD}}
+  <p class="alert alert-info small">Investing uses US prices, so it needs a household that uses US dollars.</p>
+  {{else}}
+  <form method="post" action="/admin/settings/investing" class="stack-sm">
+    {{template "csrf" .}}
+    {{if $st.Enabled}}
+    <p><strong>On.</strong> Every kid has an Invest jar; change each kid’s split on their Jars page.</p>
+    <input type="hidden" name="on" value="0">
+    <button class="btn btn-outline" type="submit">Turn investing off</button>
+    <p class="small muted">Holdings stay. Orders waiting for the market are cancelled and refunded.</p>
+    {{else}}
+    <p><strong>Off.</strong> Turning it on adds an Invest jar for every kid. Kids on the standard 70/20/10 split move to 50% Spend, 20% Save, 10% Give, 20% Invest.</p>
+    <input type="hidden" name="on" value="1">
+    <button class="btn btn-primary" type="submit">Turn investing on</button>
+    {{end}}
+  </form>
+  {{end}}
+</section>
 {{end}}

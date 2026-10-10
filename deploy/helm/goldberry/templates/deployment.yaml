@@ -76,6 +76,13 @@ spec:
             - name: GOLDBERRY_TRUSTED_PROXIES
               value: {{ . | quote }}
             {{- end }}
+            {{- if or .Values.investing.finnhubKey .Values.investing.existingSecret }}
+            - name: GOLDBERRY_FINNHUB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.investing.existingSecret | default (include "goldberry.fullname" .) }}
+                  key: {{ if .Values.investing.existingSecret }}{{ .Values.investing.existingSecretKey }}{{ else }}finnhub-key{{ end }}
+            {{- end }}
             {{- if .Values.insecureCookies }}
             - name: GOLDBERRY_INSECURE_COOKIES
               value: "true"

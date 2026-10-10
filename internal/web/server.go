@@ -387,7 +387,10 @@ func userMessage(err error) string {
 	case errors.Is(err, service.ErrTooManyPending), errors.Is(err, service.ErrCannotReverse),
 		errors.Is(err, service.ErrCannotReverseMove), errors.Is(err, service.ErrOverrideTooSoon),
 		errors.Is(err, service.ErrOverrideInvalid),
-		errors.Is(err, service.ErrBadCredentials), errors.Is(err, service.ErrLocked), errors.Is(err, service.ErrForbidden):
+		errors.Is(err, service.ErrBadCredentials), errors.Is(err, service.ErrLocked), errors.Is(err, service.ErrForbidden),
+		errors.Is(err, service.ErrInvestingOff), errors.Is(err, service.ErrNoInvestJar), errors.Is(err, service.ErrMarketDown),
+		errors.Is(err, service.ErrUnknownSymbol), errors.Is(err, service.ErrOrderNotQueued), errors.Is(err, service.ErrAlreadyPaid),
+		errors.Is(err, service.ErrCannotReverseInvest):
 		msg := err.Error()
 		return strings.ToUpper(msg[:1]) + msg[1:] + "."
 	}
