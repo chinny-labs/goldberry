@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goldberry · a self-hosted allowance tracker for kids</title>
+<meta name="description" content="Goldberry is a self-hosted allowance tracker for kids: jars, requests, goals, locks, interest and pretend investing at real prices. One container, SQLite or Postgres, AGPL-3.0.">
+<meta property="og:title" content="Goldberry">
+<meta property="og:description" content="A self-hosted allowance tracker for kids. One container, works without JavaScript, no cloud.">
+<meta property="og:image" content="screenshots/parent-dashboard.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="icon.svg" alt="" width="32" height="32">goldberry</a>
+  <nav aria-label="Site"><a href="#features">Features</a><a href="docs/index.html">Docs</a><a href="https://github.com/chinny/goldberry">GitHub</a></nav>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Self-hosted · AGPL-3.0</span>
+      <h1>Pocket money, <em>kept on the books.</em></h1>
+      <p class="lede">Goldberry is an allowance tracker for families. Parents add money with a note, kids sign in with a PIN to see what they can spend, and asking for money is a request a parent approves.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#install">Install in 60 seconds</a>
+        <a class="btn btn-outline" href="docs/index.html">Read the docs</a>
+      </div>
+      <ul class="facts">
+        <li>One container</li><li>SQLite or Postgres</li><li>Works without JavaScript</li><li>No cloud, no CDN</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="browser">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/parent-dashboard-dark.png">
+          <img src="screenshots/parent-dashboard.png" width="1440" height="900" alt="The parent dashboard: two requests waiting for approval and a card per kid with their Spend, Save, Give and Invest jars">
+        </picture>
+      </div>
+      <div class="phone">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/kid-home-dark.png">
+          <img src="screenshots/kid-home.png" width="780" height="1688" alt="A kid's home on a phone: the Spend, Save, Give and Invest jars, with locks and money waiting for approval">
+        </picture>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="features">
+  <div class="wrap">
+    <div class="head">
+      <h2>Everything a family's money needs, nothing it doesn't</h2>
+      <p>A ledger you can trust, a kid-sized interface on top, and the things that teach: saving up, giving, waiting, and watching money grow.</p>
+    </div>
+    <ul class="features">
+      <li><span class="dot t-gold" aria-hidden="true">🫙</span><h3>Spend, Save and Give</h3><p>Every deposit splits across jars, 70/20/10 by default. Rename, add or archive jars and change the split per kid.</p></li>
+      <li><span class="dot t-river" aria-hidden="true">🙋</span><h3>Requests, not withdrawals</h3><p>Kids ask for money from what's available. It's held until a parent approves (optionally less, with a note) or denies.</p></li>
+      <li><span class="dot t-danger" aria-hidden="true">🔒</span><h3>Jar locks</h3><p>A parent's lock is hard. A kid can lock their own jar and break it only through a server-enforced gauntlet.</p></li>
+      <li><span class="dot t-berry" aria-hidden="true">📅</span><h3>Recurring allowance</h3><p>Weekly, fortnightly or monthly on the household's calendar. Catches up after downtime and never pays twice.</p></li>
+      <li><span class="dot t-gold" aria-hidden="true">🎯</span><h3>Goals</h3><p>"Nintendo Switch, $300" fills from Save in priority order. Reaching one tells everyone and offers "Ask to buy it".</p></li>
+      <li><span class="dot t-river" aria-hidden="true">🌱</span><h3>Parent-paid interest</h3><p>A monthly rate on the average daily balance, with an optional cap and a "leave it for 12 months" projection.</p></li>
+      <li><span class="dot t-indigo" aria-hidden="true">📈</span><h3>Pretend investing, real prices</h3><p>Kids buy slices of real US stocks and funds from an Invest jar. Losses come off by themselves; profits wait for a parent to pay.</p></li>
+      <li><span class="dot t-berry" aria-hidden="true">🤖</span><h3>API and AI tools</h3><p>A JSON API for scripts and Home Assistant, plus an opt-in MCP server so assistants like Claude can check balances.</p></li>
+      <li><span class="dot t-river" aria-hidden="true">🧾</span><h3>An honest ledger</h3><p>Append-only, in integer cents. Undo is a visible reversal, never an edit. Kids see the comment; parents can keep a private note.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap showcase">
+    <div class="head">
+      <h2>A tour</h2>
+      <p>Taken from the demo household, the Riverbanks: three months of chores, birthdays and saving up, with Ava and Leo.</p>
+    </div>
+
+    <div class="show wide">
+      <div class="text">
+        <h3>One page per kid</h3>
+        <p>Every jar, its locks and interest, what's waiting on you, the ledger with one-click reversals, goals, allowance and investing, side by side.</p>
+        <p><a href="docs/design/plan.html">How the money rules work →</a></p>
+      </div>
+      <div class="browser"><img src="screenshots/parent-kid.png" width="1440" height="900" loading="lazy" alt="A parent's view of Ava: four jar tiles with locks and interest, a pending request, the ledger, a sparkline of last month and an investing summary"></div>
+    </div>
+
+    <div class="show flip">
+      <div class="text">
+        <h3>Breaking your own lock takes effort</h3>
+        <p>"Saving for a Switch" was past-you's idea. Breaking a self-lock means a loud warning, the goal it would empty, a 10-second countdown and a 3-second press-and-hold. The server enforces every step, so it can't be skipped.</p>
+        <p><a href="docs/adr/0011-server-enforced-gauntlet.html">Why it's on the server →</a></p>
+      </div>
+      <div class="pair">
+        <div class="phone"><img src="screenshots/pin-pad.png" width="780" height="1688" loading="lazy" alt="The kid's PIN pad"></div>
+        <div class="phone"><img src="screenshots/gauntlet.png" width="780" height="1688" loading="lazy" alt="The red lock-breaking screen: the kid's own reason, the goal dropping from 41% to 0%, and a countdown"></div>
+      </div>
+    </div>
+
+    <div class="show wide">
+      <div class="text">
+        <h3>Money over time</h3>
+        <p>A kid's balance over a week, a month, three months or any two dates, as the total or every jar. Each dot is a change that leads to what happened. Drawn as SVG on the server, so it works without JavaScript.</p>
+        <p><a href="docs/adr/0013-server-drawn-svg-charts.html">How the charts are drawn →</a></p>
+      </div>
+      <div class="browser"><img src="screenshots/parent-graph.png" width="1440" height="900" loading="lazy" alt="Ava's money over three months, one line per jar"></div>
+    </div>
+
+    <div class="show flip">
+      <div class="text">
+        <h3>Investing, explained for kids</h3>
+        <p>An Invest jar fills from the split. Kids buy slices of real US stocks and funds at live prices (from a free Finnhub key); orders after hours wait for the open. Every investing word has a kid-friendly "?" tip.</p>
+        <p><a href="docs/operations/investing.html">Turn on investing →</a></p>
+      </div>
+      <div class="pair">
+        <div class="phone"><img src="screenshots/invest.png" width="780" height="1688" loading="lazy" alt="The Invest page: $18.55 ready to invest, $51.02 invested and up $1.02, the market is open"></div>
+        <div class="phone"><img src="screenshots/stock.png" width="780" height="1688" loading="lazy" alt="A fund's page: price for one share, what you own, and a Buy form"></div>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="text">
+        <h3>Scripts, Home Assistant and Claude</h3>
+        <p>Parents mint scoped tokens on their account page: <code>read</code> for a dashboard, <code>write</code> for jars and goals, <code>money</code> to post entries. The JSON API at <code>/api/v1</code> has atomic batches, dry runs and idempotency keys; the opt-in MCP server at <code>/mcp</code> lets AI tools use the same rules.</p>
+        <p><a href="docs/operations/api.html">JSON API</a> · <a href="docs/operations/mcp.html">MCP server</a> · <a href="docs/operations/api-tokens.html">Tokens</a></p>
+      </div>
+      <div class="card-shot"><img src="screenshots/api-tokens.png" width="992" height="1032" loading="lazy" alt="The API tokens card: a Claude token with read, write and money scopes and a read-only Home Assistant token"></div>
+    </div>
+
+    <div class="show flip">
+      <div class="text">
+        <h3>Phone-first, light and dark</h3>
+        <p>Big targets and a hyperlegible typeface for small hands, a full desktop layout for parents, and a dark theme that follows the device. Installable as an app (PWA), and every page works without JavaScript.</p>
+      </div>
+      <div class="pair">
+        <div class="phone"><img src="screenshots/kid-graph.png" width="780" height="1688" loading="lazy" alt="A kid's graph of their money over three months, on a phone"></div>
+        <div class="phone"><img src="screenshots/kid-home-dark.png" width="780" height="1688" loading="lazy" alt="Leo's home in the dark theme"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="install">
+  <div class="wrap">
+    <div class="head">
+      <h2>Install</h2>
+      <p>One container and one volume. Put it behind your TLS reverse proxy (Caddy, Traefik, a Gateway) and you're done.</p>
+    </div>
+    <div class="quick">
+      <div>
+        <h3>Docker Compose</h3>
+<pre><code>mkdir goldberry &amp;&amp; cd goldberry
+curl -fsSLO https://raw.githubusercontent.com/chinny/goldberry/main/deploy/compose/compose.yaml
+openssl rand -base64 32 &gt; goldberry_key.txt
+docker compose up -d
+docker compose logs goldberry | grep -i "setup token"</code></pre>
+        <p>Open <code>https://&lt;host&gt;/setup</code>, paste the setup token and create the first parent. Then add your kids.</p>
+      </div>
+      <div>
+        <h3>Kubernetes (Helm)</h3>
+<pre><code>helm install goldberry oci://ghcr.io/chinny/charts/goldberry \
+  --namespace goldberry --create-namespace
+kubectl logs -n goldberry deploy/goldberry | grep -i "setup token"</code></pre>
+        <p>Signed multi-arch images (amd64, arm64) with SBOM and provenance. Nightly SQLite snapshots, a portable export between SQLite and Postgres, <code>/healthz</code>, <code>/readyz</code> and <code>/metrics</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="head">
+      <h2>Documentation</h2>
+      <p>Running it, connecting tools to it, and why it's built the way it is.</p>
+    </div>
+    <ul class="doc-grid">
+      <li><a href="docs/operations/install.html"><strong>Install</strong><span>Compose, Helm, Postgres, reverse proxies and configuration.</span></a></li>
+      <li><a href="docs/operations/upgrade.html"><strong>Upgrade</strong><span>Moving to a new release and what migrations do.</span></a></li>
+      <li><a href="docs/operations/backup-restore.html"><strong>Backup and restore</strong><span>Nightly snapshots, export and import, moving engines.</span></a></li>
+      <li><a href="docs/operations/investing.html"><strong>Investing</strong><span>The price feed, the Invest jar and how earnings work.</span></a></li>
+      <li><a href="docs/operations/api.html"><strong>JSON API</strong><span>Endpoints, batches, dry runs and idempotency keys.</span></a></li>
+      <li><a href="docs/operations/mcp.html"><strong>MCP server</strong><span>Connect Claude and other AI tools.</span></a></li>
+      <li><a href="docs/operations/troubleshooting.html"><strong>Troubleshooting</strong><span>Lockouts, cookies, proxies and the usual suspects.</span></a></li>
+      <li><a href="docs/adr/index.html"><strong>Decisions</strong><span>The architecture decision records, one per choice.</span></a></li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<!-- footer -->
+</body>
+</html>

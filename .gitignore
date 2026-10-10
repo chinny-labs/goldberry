@@ -8,3 +8,5 @@
 /e2e/node_modules/
 /e2e/test-results/
 /e2e/playwright-report/
+/site/node_modules/
+/site/_site/

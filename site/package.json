@@ -1,0 +1,7 @@
+{
+  "name": "goldberry-site",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": { "marked": "18.0.14" }
+}

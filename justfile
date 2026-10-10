@@ -54,3 +54,17 @@ backup:
 e2e:
     cd e2e && npm ci
     e2e/run-image.sh
+
+# Serve the demo household (three months of made-up history) on :18081.
+demo:
+    go build -o bin/goldberry-demo ./e2e/demo
+    bin/goldberry-demo -listen 127.0.0.1:18081
+
+# Retake the README and website screenshots from the demo household.
+screenshots:
+    cd e2e && npm ci
+    e2e/screenshots.sh
+
+# Build the website (landing page plus docs/) into site/_site and check its links.
+site:
+    cd site && npm ci && node build.mjs && node check-links.mjs
