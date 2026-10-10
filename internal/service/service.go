@@ -133,7 +133,7 @@ func (s *Service) audit(ctx context.Context, tx store.Tx, actorID, action, targe
 		if detail == nil {
 			detail = map[string]any{}
 		}
-		detail["token"] = id
+		detail["via_token"] = id
 	}
 	var raw json.RawMessage
 	if len(detail) > 0 {
