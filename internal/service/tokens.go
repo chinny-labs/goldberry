@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"slices"
 	"strings"
 
@@ -151,4 +153,49 @@ func (s *Service) AuthenticateToken(ctx context.Context, secret string) (store.U
 		}
 	}
 	return u, t, nil
+}
+
+type tokenKey struct{}
+
+// WithToken marks ctx as an API call made with the given token, so audit rows
+// written during it name the token.
+func WithToken(ctx context.Context, tokenID string) context.Context {
+	return context.WithValue(ctx, tokenKey{}, tokenID)
+}
+
+func tokenFrom(ctx context.Context) string {
+	id, _ := ctx.Value(tokenKey{}).(string)
+	return id
+}
+
+// AuditTokens names the API token behind each audit entry made through one,
+// as audit entry ID → token label. Entries made in the web app are absent.
+// Revoked tokens keep their labels, so old history still reads.
+func (s *Service) AuditTokens(ctx context.Context, actor store.User, log []store.AuditEntry) (map[string]string, error) {
+	if err := requireAdmin(actor); err != nil {
+		return nil, err
+	}
+	labels := map[string]string{} // token ID → label
+	out := map[string]string{}
+	for _, a := range log {
+		var d struct {
+			Via string `json:"via_token"` // set only on changes made through a token
+		}
+		if len(a.Detail) == 0 || json.Unmarshal(a.Detail, &d) != nil || d.Via == "" {
+			continue
+		}
+		label, seen := labels[d.Via]
+		if !seen {
+			if t, err := s.Store.GetAPIToken(ctx, d.Via); err == nil {
+				label = t.Label
+			} else if !errors.Is(err, store.ErrNotFound) {
+				return nil, err
+			}
+			labels[d.Via] = label
+		}
+		if label != "" {
+			out[a.ID] = label
+		}
+	}
+	return out, nil
 }

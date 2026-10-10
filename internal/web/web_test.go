@@ -496,6 +496,10 @@ func TestAPITokens(t *testing.T) {
 	mom.post("/admin/users/"+momID+"/tokens", url.Values{"label": {"Home Assistant"}, "scope": {"money"}}, 200)
 	secret := find(t, `value="(gb_[A-Za-z0-9_-]+)"`, mom.last)
 	mom.mustSee("Copy this token now", "Home Assistant", "read, money", "never used")
+	// Minting in the web app is not "via" a token, even though the row names the new one.
+	mom.get("/admin/users/"+momID, 200)
+	mom.mustSee("token.create")
+	mom.mustNotSee("via “")
 	mom.get("/admin/users/"+momID, 200)
 	mom.mustSee("Home Assistant")
 	mom.mustNotSee(secret, "Copy this token now")
@@ -585,6 +589,37 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 	if r := get("/api/v1/openapi.json", ""); r.status != 200 {
 		t.Fatalf("spec: %d", r.status)
 	}
+	// Writes need no CSRF token either: the bearer token is the proof.
+	mom.post("/admin/users", url.Values{"role": {"kid"}, "display_name": {"Ava"}, "username": {"ava"}, "pin": {"2468"}}, 200)
+	money, _, err := svc.CreateAPIToken(context.Background(), u, service.TokenInput{Label: "m", Scopes: []string{"money"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	post := func(token string) int {
+		req, _ := http.NewRequest("POST", ts.URL+"/api/v1/kids/ava/entries", strings.NewReader(`{"amount": 250}`))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Idempotency-Key", "web-1")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+	if got := post(money); got != 201 {
+		t.Fatalf("POST with a money token: %d", got)
+	}
+	// The kid's history says it was the API, and which token.
+	ava, err := svc.Store.GetUserByUsername(context.Background(), "ava")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mom.get("/admin/users/"+ava.ID, 200)
+	mom.mustSee("api.entry", "Mom via “m”")
+	if got := post(secret); got != 403 { // the read-only token
+		t.Fatalf("POST with a read token: %d", got)
+	}
+
 	// A session cookie is not a credential for the API.
 	req, _ := http.NewRequest("GET", mom.base+"/api/v1/household", nil)
 	resp2, err := mom.c.Do(req)

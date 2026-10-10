@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"regexp"
 	"strings"
 	"time"
@@ -127,6 +128,13 @@ func cleanName(name string) (string, error) {
 }
 
 func (s *Service) audit(ctx context.Context, tx store.Tx, actorID, action, targetID string, detail map[string]any) error {
+	if id := tokenFrom(ctx); id != "" { // an API call: name the token
+		detail = maps.Clone(detail)
+		if detail == nil {
+			detail = map[string]any{}
+		}
+		detail["via_token"] = id
+	}
 	var raw json.RawMessage
 	if len(detail) > 0 {
 		b, err := json.Marshal(detail)
@@ -138,6 +146,16 @@ func (s *Service) audit(ctx context.Context, tx store.Tx, actorID, action, targe
 	return tx.InsertAudit(ctx, store.AuditEntry{
 		ID: store.NewID(), ActorID: actorID, Action: action, TargetID: targetID, Detail: raw, CreatedAt: s.now(),
 	})
+}
+
+// auditVia records an audit row only for API calls. Money movements made in
+// the web app are already attributed by their ledger entries; through the API
+// the row also names the token.
+func (s *Service) auditVia(ctx context.Context, tx store.Tx, actorID, action, targetID string, detail map[string]any) error {
+	if tokenFrom(ctx) == "" {
+		return nil
+	}
+	return s.audit(ctx, tx, actorID, action, targetID, detail)
 }
 
 func requireAdmin(u store.User) error {

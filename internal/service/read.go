@@ -82,3 +82,48 @@ func (s *Service) KidGoals(ctx context.Context, kidID string) ([]GoalView, error
 func (s *Service) ListRequests(ctx context.Context, f store.RequestFilter) ([]store.WithdrawalRequest, error) {
 	return s.Store.ListRequests(ctx, f)
 }
+
+// JarByID returns one jar with its balance, split share and locks.
+func (s *Service) JarByID(ctx context.Context, jarID string) (JarView, error) {
+	j, err := s.Store.GetJar(ctx, jarID)
+	if err != nil {
+		return JarView{}, err
+	}
+	v, err := s.KidOverview(ctx, j.KidID, 0)
+	if err != nil {
+		return JarView{}, err
+	}
+	if jv, ok := v.Jar(jarID); ok {
+		return jv, nil
+	}
+	if j.ArchivedAt != nil { // archived jars drop out of the balances
+		return JarView{JarBalance: store.JarBalance{Jar: j}}, nil
+	}
+	return JarView{}, ErrNotFound
+}
+
+// GoalByID returns one goal with its progress. An archived goal shows no
+// funding: it no longer draws on its jar.
+func (s *Service) GoalByID(ctx context.Context, goalID string) (GoalView, error) {
+	g, err := s.Store.GetGoal(ctx, goalID)
+	if err != nil {
+		return GoalView{}, err
+	}
+	if g.ArchivedAt != nil {
+		gv := GoalView{Goal: g}
+		if j, err := s.Store.GetJar(ctx, g.JarID); err == nil {
+			gv.JarName = j.Name
+		}
+		return gv, nil
+	}
+	views, err := s.Goals(ctx, s.Store, g.KidID)
+	if err != nil {
+		return GoalView{}, err
+	}
+	for _, v := range views {
+		if v.ID == goalID {
+			return v, nil
+		}
+	}
+	return GoalView{}, ErrNotFound
+}

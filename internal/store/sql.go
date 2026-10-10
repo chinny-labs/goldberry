@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 )
@@ -43,7 +44,17 @@ func (s *SQL) Close() error                   { return s.close() }
 // WriteDB exposes the write pool to engine packages (backups, migrations).
 func (s *SQL) WriteDB() *sql.DB { return s.write }
 
-func (s *SQL) Tx(ctx context.Context, lockKid string, fn func(Tx) error) (err error) {
+func (s *SQL) Tx(ctx context.Context, lockKid string, fn func(Tx) error) error {
+	var kids []string
+	if lockKid != "" {
+		kids = []string{lockKid}
+	}
+	return s.TxLocked(ctx, kids, fn)
+}
+
+// TxLocked is Tx for work that spans several kids. Locks are taken in sorted
+// order, so two batches over the same kids can't deadlock each other.
+func (s *SQL) TxLocked(ctx context.Context, kidIDs []string, fn func(Tx) error) (err error) {
 	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)
@@ -53,8 +64,10 @@ func (s *SQL) Tx(ctx context.Context, lockKid string, fn func(Tx) error) (err er
 			_ = tx.Rollback()
 		}
 	}()
-	if lockKid != "" {
-		if err = s.dialect.LockKid(ctx, tx, lockKid); err != nil {
+	ids := slices.Clone(kidIDs)
+	slices.Sort(ids)
+	for _, id := range slices.Compact(ids) {
+		if err = s.dialect.LockKid(ctx, tx, id); err != nil {
 			return err
 		}
 	}

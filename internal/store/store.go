@@ -26,6 +26,10 @@ type Store interface {
 	// SELECT … FOR UPDATE on the kid's users row), so check-then-write is safe.
 	Tx(ctx context.Context, lockKid string, fn func(Tx) error) error
 
+	// TxLocked is Tx for work spanning several kids: every kid in kidIDs is
+	// locked (in a fixed order) before fn runs.
+	TxLocked(ctx context.Context, kidIDs []string, fn func(Tx) error) error
+
 	Dialect() string // "sqlite" or "postgres"
 	Ping(ctx context.Context) error
 	Close() error

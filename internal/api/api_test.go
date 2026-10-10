@@ -26,6 +26,9 @@ type env struct {
 	api    *api.API
 	srv    *httptest.Server
 	secret map[string]string // by scope set, e.g. "read", "money"
+	// tick moves the clock on after every call, so a long scenario stays
+	// under the per-token rate limit.
+	tick bool
 }
 
 func newEnv(t *testing.T) *env {
@@ -68,6 +71,9 @@ func (e *env) call(token, method, path string, body any, out any) int {
 
 func (e *env) callH(token, method, path string, body any, hdr map[string]string, out any) int {
 	e.t.Helper()
+	if e.tick {
+		defer e.f.Clock.Advance(200 * time.Millisecond)
+	}
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
@@ -332,4 +338,8 @@ func TestReads(t *testing.T) {
 	if len(kids.Items) != 2 {
 		t.Fatalf("include_disabled gave %d", len(kids.Items))
 	}
+}
+
+func requestInput(jarID string, amount int64, key string) service.RequestInput {
+	return service.RequestInput{JarID: jarID, Amount: amount, Reason: "treat", IdempotencyKey: key}
 }

@@ -632,6 +632,18 @@ type TransferInput struct {
 // kid may move only their own money and is subject to jar locks; admins
 // aren't.
 func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInput) ([]store.LedgerEntry, error) {
+	out, _, err := s.TransferReplay(ctx, actor, in)
+	return out, err
+}
+
+// TransferReplay is Transfer that also reports an idempotent replay.
+func (s *Service) TransferReplay(ctx context.Context, actor store.User, in TransferInput) ([]store.LedgerEntry, bool, error) {
+	var replay bool
+	out, err := s.transfer(ctx, actor, in, &replay)
+	return out, replay, err
+}
+
+func (s *Service) transfer(ctx context.Context, actor store.User, in TransferInput, replay *bool) ([]store.LedgerEntry, error) {
 	switch {
 	case actor.Disabled():
 		return nil, ErrForbidden
@@ -669,7 +681,19 @@ func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInp
 				if prev[0].KidID != kid.ID {
 					return ErrForbidden
 				}
-				out = prev
+				// priorEntries follows batches, not transfers: fetch both legs.
+				legs := make([]store.LedgerEntry, 0, 2)
+				for _, leg := range []string{"out", "in"} {
+					e, err := tx.GetLedgerEntryByKey(ctx, partKey(in.IdempotencyKey, leg, true))
+					if err != nil {
+						return err
+					}
+					legs = append(legs, e)
+				}
+				if err := sameTransfer(legs, in); err != nil {
+					return err
+				}
+				out, *replay = legs, true
 				return nil
 			}
 		}
@@ -704,6 +728,9 @@ func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInp
 			}
 		}
 		out = pair
+		if err := s.auditVia(ctx, tx, actor.ID, "api.transfer", kid.ID, map[string]any{"from": from.ID, "to": to.ID, "amount": in.Amount}); err != nil {
+			return err
+		}
 		if len(overridden) > 0 {
 			action := "once"
 			if in.RemoveLock {
@@ -714,6 +741,19 @@ func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInp
 		return nil
 	})
 	return out, err
+}
+
+// sameTransfer checks a replayed transfer against the pair the key posted.
+func sameTransfer(prev []store.LedgerEntry, in TransferInput) error {
+	for _, e := range prev {
+		switch {
+		case e.Kind == store.KindTransferOut && (e.JarID != in.FromJarID || -e.Amount != in.Amount):
+			return errKeyReused
+		case e.Kind == store.KindTransferIn && (e.JarID != in.ToJarID || e.Amount != in.Amount):
+			return errKeyReused
+		}
+	}
+	return nil
 }
 
 // SplitSummary renders a split like "70 / 20 / 10" in jar order.
