@@ -499,6 +499,10 @@ func TestAPITokens(t *testing.T) {
 	mom.post("/admin/users/"+momID+"/tokens", url.Values{"label": {"Home Assistant"}, "scope": {"money"}}, 200)
 	secret := find(t, `value="(gb_[A-Za-z0-9_-]+)"`, mom.last)
 	mom.mustSee("Copy this token now", "Home Assistant", "read, money", "never used")
+	// Minting in the web app is not "via" a token, even though the row names the new one.
+	mom.get("/admin/users/"+momID, 200)
+	mom.mustSee("token.create")
+	mom.mustNotSee("via “")
 	mom.get("/admin/users/"+momID, 200)
 	mom.mustSee("Home Assistant")
 	mom.mustNotSee(secret, "Copy this token now")
