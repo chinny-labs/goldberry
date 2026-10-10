@@ -24,6 +24,7 @@ type Config struct {
 	Listen          string
 	TrustedProxies  []netip.Prefix
 	InsecureCookies bool
+	MCPEnabled      bool // serve the MCP server at /mcp (ADR 0016)
 	BackupSchedule  string
 	BackupRetain    int
 	LogFormat       string // json | text
@@ -122,6 +123,13 @@ func parse(lookup func(string) (string, bool)) (Config, error) {
 		errs = append(errs, fmt.Errorf("GOLDBERRY_INSECURE_COOKIES: %w", err))
 	} else {
 		c.InsecureCookies = b
+	}
+
+	mcpOn := str("GOLDBERRY_MCP_ENABLED", "false")
+	if b, err := strconv.ParseBool(mcpOn); err != nil {
+		errs = append(errs, fmt.Errorf("GOLDBERRY_MCP_ENABLED: %w", err))
+	} else {
+		c.MCPEnabled = b
 	}
 
 	for _, s := range strings.FieldsFunc(str("GOLDBERRY_TRUSTED_PROXIES", ""), func(r rune) bool { return r == ',' || r == ' ' }) {

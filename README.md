@@ -24,7 +24,7 @@ Open `https://<host>/setup`, paste the setup token, and create the first parent 
 
 > Sessions use `Secure` cookies, so put Goldberry behind a TLS reverse proxy (Caddy, Traefik, a Gateway). For a quick plain-HTTP trial on your LAN, set `GOLDBERRY_INSECURE_COOKIES: "true"` in `compose.yaml`.
 
-On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md), [JSON API](docs/operations/api.md), [API tokens](docs/operations/api-tokens.md) and [troubleshooting](docs/operations/troubleshooting.md).
+On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md), [JSON API](docs/operations/api.md), [MCP server](docs/operations/mcp.md), [API tokens](docs/operations/api-tokens.md) and [troubleshooting](docs/operations/troubleshooting.md).
 
 ## What it does
 
@@ -56,6 +56,7 @@ Environment variables (or `/data/config.env`). Any variable can also be given as
 | `GOLDBERRY_LISTEN` | `:8080` | |
 | `GOLDBERRY_TRUSTED_PROXIES` | *(none)* | CIDRs whose `X-Forwarded-For` is trusted for logging |
 | `GOLDBERRY_INSECURE_COOKIES` | `false` | Plain-HTTP testing only |
+| `GOLDBERRY_MCP_ENABLED` | `false` | Serve the [MCP server](docs/operations/mcp.md) at `/mcp` for AI tools |
 | `GOLDBERRY_BACKUP_SCHEDULE` | `03:15` | Time of the nightly SQLite snapshot (in `TZ`) |
 | `GOLDBERRY_BACKUP_RETAIN` | `14` | Snapshots to keep in `/data/backups` |
 | `GOLDBERRY_LOG_FORMAT` | `json` | `json` or `text` |

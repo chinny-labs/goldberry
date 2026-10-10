@@ -1,6 +1,6 @@
 # API tokens
 
-Tokens let scripts and AI tools use Goldberry as a parent. They are the credential for the JSON API and the MCP server that follow in later releases ([ADR 0015](../adr/0015-json-api-bearer-tokens.md), [ADR 0016](../adr/0016-mcp-server-on-the-api.md)).
+Tokens let scripts and AI tools use Goldberry as a parent. They are the credential for the [JSON API](api.md) and the [MCP server](mcp.md) ([ADR 0015](../adr/0015-json-api-bearer-tokens.md), [ADR 0016](../adr/0016-mcp-server-on-the-api.md)).
 
 ## Make one
 

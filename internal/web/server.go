@@ -193,9 +193,9 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "DENY")
 
-		// The API authenticates with bearer tokens: no cookies, no CSRF, and
+		// The API and MCP server authenticate with bearer tokens: no cookies, no CSRF, and
 		// no first-run redirect (an unconfigured install has no tokens).
-		if isOpenPath(r.URL.Path) || strings.HasPrefix(r.URL.Path, api.Prefix+"/") {
+		if isOpenPath(r.URL.Path) || strings.HasPrefix(r.URL.Path, api.Prefix+"/") || r.URL.Path == api.MCPPath {
 			next.ServeHTTP(sw, r)
 			return
 		}

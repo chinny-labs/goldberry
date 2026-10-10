@@ -45,6 +45,7 @@ func newEnv(t *testing.T) *env {
 	e.api = api.New(f.Svc, api.Options{})
 	mux := http.NewServeMux()
 	mux.Handle(api.Prefix+"/", e.api)
+	mux.Handle(api.MCPPath, e.api.MCPHandler())
 	e.srv = httptest.NewServer(mux)
 	t.Cleanup(e.srv.Close)
 	e.mint("read")

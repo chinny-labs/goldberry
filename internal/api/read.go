@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	_ "embed"
 	"net/http"
 	"strconv"
@@ -12,11 +13,6 @@ import (
 
 //go:embed openapi.json
 var openapiJSON []byte
-
-const (
-	defaultLimit = 50
-	maxLimit     = 500
-)
 
 func (a *API) routeAll() {
 	a.handle("GET", "/openapi.json", "", func(w http.ResponseWriter, _ *http.Request, _ *principal) {
@@ -49,81 +45,123 @@ func (a *API) household(w http.ResponseWriter, r *http.Request, _ *principal) {
 	writeJSON(w, http.StatusOK, household(h, cur))
 }
 
-func (a *API) kids(w http.ResponseWriter, r *http.Request, _ *principal) {
-	all := r.URL.Query().Get("include_disabled") == "true"
-	ks, err := a.svc.KidSummaries(r.Context(), all)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
+// The read operations below return DTOs and are shared by the HTTP handlers
+// and the MCP tools.
+
+func (a *API) listKids(ctx context.Context, includeDisabled bool) (list[kidDTO], error) {
+	ks, err := a.svc.KidSummaries(ctx, includeDisabled)
 	out := list[kidDTO]{Items: make([]kidDTO, 0, len(ks))}
 	for _, k := range ks {
 		out.Items = append(out.Items, kidSummary(k))
 	}
-	writeJSON(w, http.StatusOK, out)
+	return out, err
 }
 
-// kidID resolves the {kid} path value (an ID or a username).
-func (a *API) kidID(w http.ResponseWriter, r *http.Request) (store.User, bool) {
-	k, err := a.svc.ResolveKid(r.Context(), r.PathValue("kid"))
+func (a *API) kidView(ctx context.Context, ref string) (service.KidView, error) {
+	k, err := a.svc.ResolveKid(ctx, ref)
 	if err != nil {
-		a.fail(w, r, err)
-		return k, false
+		return service.KidView{}, err
 	}
-	return k, true
+	return a.svc.KidOverview(ctx, k.ID, 0)
 }
 
-func (a *API) kid(w http.ResponseWriter, r *http.Request, _ *principal) {
-	k, ok := a.kidID(w, r)
-	if !ok {
-		return
-	}
-	v, err := a.svc.KidOverview(r.Context(), k.ID, 0)
+func (a *API) getKid(ctx context.Context, ref string) (kidDetailDTO, error) {
+	v, err := a.kidView(ctx, ref)
 	if err != nil {
-		a.fail(w, r, err)
-		return
+		return kidDetailDTO{}, err
 	}
 	d := kidDetailDTO{kidDTO: kidDTO{userDTO: user(v.Kid), Total: v.Total, Held: v.Held, Available: v.Available()},
 		Jars: make([]jarDTO, 0, len(v.Jars)), PendingRequests: len(v.Pending)}
 	for _, j := range v.Jars {
 		d.Jars = append(d.Jars, jar(j))
 	}
-	writeJSON(w, http.StatusOK, d)
+	return d, nil
 }
 
-func (a *API) jars(w http.ResponseWriter, r *http.Request, _ *principal) {
-	k, ok := a.kidID(w, r)
-	if !ok {
-		return
-	}
-	v, err := a.svc.KidOverview(r.Context(), k.ID, 0)
+func (a *API) getJars(ctx context.Context, ref string) (list[jarDTO], error) {
+	v, err := a.kidView(ctx, ref)
 	if err != nil {
-		a.fail(w, r, err)
-		return
+		return list[jarDTO]{}, err
 	}
 	out := list[jarDTO]{Items: make([]jarDTO, 0, len(v.Jars))}
 	for _, j := range v.Jars {
 		out.Items = append(out.Items, jar(j))
 	}
-	writeJSON(w, http.StatusOK, out)
+	return out, nil
 }
 
-// limitParam reads ?limit=, defaulting and capping it.
-func limitParam(r *http.Request) (int, error) {
-	raw := r.URL.Query().Get("limit")
-	if raw == "" {
-		return defaultLimit, nil
-	}
-	n, err := strconv.Atoi(raw)
-	if err != nil || n < 1 {
-		return 0, &service.UserError{Field: "limit", Msg: "limit must be a whole number from 1 to " + strconv.Itoa(maxLimit) + "."}
-	}
-	return min(n, maxLimit), nil
+// ledgerQuery is the filter for a kid's ledger, in wire form.
+type ledgerQuery struct {
+	Limit int
+	JarID string
+	From  string
+	To    string
 }
 
-// timeParam reads an RFC3339 time or a YYYY-MM-DD date (midnight UTC).
-func timeParam(r *http.Request, name string) (time.Time, error) {
-	raw := r.URL.Query().Get(name)
+func (a *API) getLedger(ctx context.Context, ref string, q ledgerQuery) (list[entryDTO], error) {
+	k, err := a.svc.ResolveKid(ctx, ref)
+	if err != nil {
+		return list[entryDTO]{}, err
+	}
+	if q.Limit == 0 {
+		q.Limit = defaultLimit
+	}
+	if q.Limit < 0 || q.Limit > maxLimit {
+		return list[entryDTO]{}, &service.UserError{Field: "limit", Msg: "limit must be a whole number from 1 to " + strconv.Itoa(maxLimit) + "."}
+	}
+	from, err := parseTime("from", q.From)
+	if err != nil {
+		return list[entryDTO]{}, err
+	}
+	to, err := parseTime("to", q.To)
+	if err != nil {
+		return list[entryDTO]{}, err
+	}
+	es, err := a.svc.KidLedger(ctx, k.ID, store.LedgerFilter{JarID: q.JarID, From: from, To: to, Limit: q.Limit})
+	return list[entryDTO]{Items: entries(es)}, err
+}
+
+func (a *API) getGoals(ctx context.Context, ref string) (list[goalDTO], error) {
+	k, err := a.svc.ResolveKid(ctx, ref)
+	if err != nil {
+		return list[goalDTO]{}, err
+	}
+	gs, err := a.svc.KidGoals(ctx, k.ID)
+	out := list[goalDTO]{Items: make([]goalDTO, 0, len(gs))}
+	for _, g := range gs {
+		out.Items = append(out.Items, goal(g))
+	}
+	return out, err
+}
+
+// getRequests lists requests; an empty ref means every kid's.
+func (a *API) getRequests(ctx context.Context, ref, status string, limit int) (list[requestDTO], error) {
+	kidID := ""
+	if ref != "" {
+		k, err := a.svc.ResolveKid(ctx, ref)
+		if err != nil {
+			return list[requestDTO]{}, err
+		}
+		kidID = k.ID
+	}
+	if limit == 0 {
+		limit = defaultLimit
+	}
+	if limit < 0 || limit > maxLimit {
+		return list[requestDTO]{}, &service.UserError{Field: "limit", Msg: "limit must be a whole number from 1 to " + strconv.Itoa(maxLimit) + "."}
+	}
+	st := store.RequestStatus(status)
+	switch st {
+	case "", store.StatusPending, store.StatusApproved, store.StatusDenied, store.StatusCancelled, store.StatusExpired:
+	default:
+		return list[requestDTO]{}, &service.UserError{Field: "status", Msg: "status must be pending, approved, denied, cancelled or expired."}
+	}
+	rs, err := a.svc.ListRequests(ctx, store.RequestFilter{KidID: kidID, Status: st, Limit: limit})
+	return list[requestDTO]{Items: requests(rs)}, err
+}
+
+// parseTime reads an RFC3339 time or a YYYY-MM-DD date (midnight UTC); "" is unset.
+func parseTime(name, raw string) (time.Time, error) {
 	if raw == "" {
 		return time.Time{}, nil
 	}
@@ -136,74 +174,74 @@ func timeParam(r *http.Request, name string) (time.Time, error) {
 	return time.Time{}, &service.UserError{Field: name, Msg: name + " must be an RFC3339 time or a YYYY-MM-DD date."}
 }
 
+// reply writes v, or the failure.
+func reply[T any](a *API, w http.ResponseWriter, r *http.Request, v T, err error) {
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+func (a *API) kids(w http.ResponseWriter, r *http.Request, _ *principal) {
+	v, err := a.listKids(r.Context(), r.URL.Query().Get("include_disabled") == "true")
+	reply(a, w, r, v, err)
+}
+
+func (a *API) kid(w http.ResponseWriter, r *http.Request, _ *principal) {
+	v, err := a.getKid(r.Context(), r.PathValue("kid"))
+	reply(a, w, r, v, err)
+}
+
+func (a *API) jars(w http.ResponseWriter, r *http.Request, _ *principal) {
+	v, err := a.getJars(r.Context(), r.PathValue("kid"))
+	reply(a, w, r, v, err)
+}
+
+// limitParam reads ?limit=: 0 when absent, -1 when malformed.
+func limitParam(r *http.Request) int {
+	raw := r.URL.Query().Get("limit")
+	if raw == "" {
+		return 0
+	}
+	if n, err := strconv.Atoi(raw); err == nil && n >= 1 {
+		return n
+	}
+	return -1
+}
+
 func (a *API) ledger(w http.ResponseWriter, r *http.Request, _ *principal) {
-	k, ok := a.kidID(w, r)
-	if !ok {
-		return
-	}
-	limit, err := limitParam(r)
-	var from, to time.Time
-	if err == nil {
-		from, err = timeParam(r, "from")
-	}
-	if err == nil {
-		to, err = timeParam(r, "to")
-	}
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	es, err := a.svc.KidLedger(r.Context(), k.ID, store.LedgerFilter{JarID: r.URL.Query().Get("jar_id"), From: from, To: to, Limit: limit})
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, list[entryDTO]{Items: entries(es)})
+	q := r.URL.Query()
+	v, err := a.getLedger(r.Context(), r.PathValue("kid"), ledgerQuery{Limit: limitParam(r), JarID: q.Get("jar_id"), From: q.Get("from"), To: q.Get("to")})
+	reply(a, w, r, v, err)
 }
 
 func (a *API) goals(w http.ResponseWriter, r *http.Request, _ *principal) {
-	k, ok := a.kidID(w, r)
-	if !ok {
-		return
-	}
-	gs, err := a.svc.KidGoals(r.Context(), k.ID)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	out := list[goalDTO]{Items: make([]goalDTO, 0, len(gs))}
-	for _, g := range gs {
-		out.Items = append(out.Items, goal(g))
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-func (a *API) requestList(w http.ResponseWriter, r *http.Request, kidID string) {
-	limit, err := limitParam(r)
-	status := store.RequestStatus(r.URL.Query().Get("status"))
-	switch status {
-	case "", store.StatusPending, store.StatusApproved, store.StatusDenied, store.StatusCancelled, store.StatusExpired:
-	default:
-		err = &service.UserError{Field: "status", Msg: "status must be pending, approved, denied, cancelled or expired."}
-	}
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	rs, err := a.svc.ListRequests(r.Context(), store.RequestFilter{KidID: kidID, Status: status, Limit: limit})
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, list[requestDTO]{Items: requests(rs)})
+	v, err := a.getGoals(r.Context(), r.PathValue("kid"))
+	reply(a, w, r, v, err)
 }
 
 func (a *API) kidRequests(w http.ResponseWriter, r *http.Request, _ *principal) {
-	if k, ok := a.kidID(w, r); ok {
-		a.requestList(w, r, k.ID)
-	}
+	v, err := a.getRequests(r.Context(), r.PathValue("kid"), r.URL.Query().Get("status"), limitParam(r))
+	reply(a, w, r, v, err)
 }
 
 func (a *API) allRequests(w http.ResponseWriter, r *http.Request, _ *principal) {
-	a.requestList(w, r, "")
+	v, err := a.getRequests(r.Context(), "", r.URL.Query().Get("status"), limitParam(r))
+	reply(a, w, r, v, err)
 }
+
+// kidID resolves the {kid} path value (an ID or a username).
+func (a *API) kidID(w http.ResponseWriter, r *http.Request) (store.User, bool) {
+	k, err := a.svc.ResolveKid(r.Context(), r.PathValue("kid"))
+	if err != nil {
+		a.fail(w, r, err)
+		return k, false
+	}
+	return k, true
+}
+
+const (
+	defaultLimit = 50
+	maxLimit     = 500
+)
