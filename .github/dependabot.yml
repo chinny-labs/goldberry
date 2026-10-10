@@ -15,6 +15,9 @@ updates:
   - package-ecosystem: npm
     directory: /e2e
     schedule: { interval: monthly }
+  - package-ecosystem: npm
+    directory: /site
+    schedule: { interval: monthly }
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }

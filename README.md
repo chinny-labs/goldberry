@@ -4,11 +4,17 @@ A self-hosted allowance tracker for kids. Parents add and remove money with a co
 
 One container, one volume: a Go binary serving server-rendered HTML (HTMX), with SQLite on the volume by default or Postgres if you point it at one. *Named for Goldberry, the River-daughter in The Lord of the Rings.*
 
-![The parent dashboard: a request waiting for approval and a card per kid with their Spend, Save and Give jars](docs/screenshots/parent-dashboard.png)
+**[Website and docs →](https://chinny.github.io/goldberry/)**
 
-| A kid's home | Breaking your own lock | Signing in |
+![The parent dashboard: two requests waiting for approval and a card per kid with their Spend, Save, Give and Invest jars](docs/screenshots/parent-dashboard.png)
+
+| A kid's home | Breaking your own lock | Investing |
 | --- | --- | --- |
-| <img src="docs/screenshots/kid-home.png" width="260" alt="A kid's home: the Spend jar, Save and Give with lock badges, a pending request"> | <img src="docs/screenshots/gauntlet.png" width="260" alt="The red lock-breaking screen with the kid's own reason, the cost and a countdown"> | <img src="docs/screenshots/pin-pad.png" width="260" alt="The PIN pad"> |
+| <img src="docs/screenshots/kid-home.png" width="260" alt="A kid's home: the Spend jar, Save and Give with lock badges, the Invest jar, money waiting for approval"> | <img src="docs/screenshots/gauntlet.png" width="260" alt="The red lock-breaking screen with the kid's own reason, the goal it would empty and a countdown"> | <img src="docs/screenshots/invest.png" width="260" alt="The Invest page: money ready to invest, what's invested and whether it's up, and the market status"> |
+
+| One page per kid | Money over time |
+| --- | --- |
+| <img src="docs/screenshots/parent-kid.png" alt="A parent's view of one kid: four jars with locks and interest, a pending request, the ledger, last month's sparkline and investing"> | <img src="docs/screenshots/parent-graph.png" alt="A kid's money over three months, one line per jar"> |
 
 ## Quickstart (Docker Compose, 60 seconds)
 
@@ -85,9 +91,14 @@ just pg-up && just test-pg   # the same contract suite on Postgres
 just lint       # gofmt, vet, golangci-lint, migration parity
 just helm       # lint and render the Helm chart
 just e2e        # build the image and run the Playwright smoke test against it
+just demo       # serve a made-up household with three months of history on :18081
+just screenshots  # retake docs/screenshots from the demo household
+just site       # build the website (site/ plus docs/) into site/_site
 ```
 
-Layout follows the plan (§13.2): `cmd/goldberry` (CLI), `internal/{config,money,allowance,auth,service,scheduler,notify,backup,store,web}`, `migrations/{sqlite,postgres}` (kept in lockstep), `deploy/{compose,helm/goldberry}`, `e2e/`, and `docs/` with the [design plan](docs/design/plan.md), the [design board](docs/design/README.md) and [ADRs](docs/adr/README.md).
+The screenshots come from `e2e/demo`, which seeds "The Riverbanks" through the real service layer on a moved clock, with made-up stock prices. Retake them with `just screenshots` when a screen changes. The website is `site/`: a landing page plus every page in `docs/operations`, `docs/adr` and the design plan, rendered from the Markdown and published to [GitHub Pages](https://chinny.github.io/goldberry/) by `.github/workflows/pages.yml` on every push to `main` that touches them. The first time, set **Settings → Pages → Source** to **GitHub Actions**.
+
+Layout follows the plan (§13.2): `cmd/goldberry` (CLI), `internal/{config,money,allowance,auth,service,scheduler,notify,backup,store,web}`, `migrations/{sqlite,postgres}` (kept in lockstep), `deploy/{compose,helm/goldberry}`, `e2e/` (smoke test, demo household, screenshots), `site/` (the website), and `docs/` with the [design plan](docs/design/plan.md), the [design board](docs/design/README.md) and [ADRs](docs/adr/README.md).
 
 The service layer owns every money rule; handlers never touch the store. `internal/store/storetest` is the contract suite both database engines must pass — it is the real definition of "pluggable".
 
