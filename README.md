@@ -37,6 +37,7 @@ On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. S
 - **Goals:** "Nintendo Switch, $300" fills from the Save jar's money in priority order. Reaching one tells everyone and offers "Ask to buy it".
 - **Parent-paid interest:** a monthly rate on the average daily balance (so a deposit on the 30th earns almost nothing), with an optional cap and a "leave it for 12 months" projection.
 - **Balance graph:** a kid's money over the last week, month or three months, or any pair of dates, as the total, every jar, or one jar. Each change is a dot that leads to what happened ([ADR 0013](docs/adr/0013-server-drawn-svg-charts.md)).
+- **Investing:** kids buy and sell real US stocks and funds at live prices with a fourth **Invest** jar that fills from the split. Orders placed after hours wait for the open. Losses come off by themselves; profits wait for a parent to pay them. Every investing word has a kid-friendly "?" tip ([operations](docs/operations/investing.md), [ADR 0014](docs/adr/0014-simulated-brokerage-real-prices.md)).
 - **Notifications:** an in-app bell with Approve/Deny inline.
 - **Operations:** nightly SQLite snapshots, a portable export/import between SQLite and Postgres, a Helm chart, `/healthz`, `/readyz`, `/metrics`, signed multi-arch images.
 - Light and dark themes, phone-first, installable as an app (PWA), works without JavaScript, no CDN (works offline on a LAN).
@@ -58,6 +59,7 @@ Environment variables (or `/data/config.env`). Any variable can also be given as
 | `GOLDBERRY_BACKUP_SCHEDULE` | `03:15` | Time of the nightly SQLite snapshot (in `TZ`) |
 | `GOLDBERRY_BACKUP_RETAIN` | `14` | Snapshots to keep in `/data/backups` |
 | `GOLDBERRY_LOG_FORMAT` | `json` | `json` or `text` |
+| `GOLDBERRY_FINNHUB_API_KEY` | *(none)* | Free key from finnhub.io; turns on [investing](docs/operations/investing.md) |
 | `TZ` | `UTC` | Default household time zone at setup |
 
 **Never put the SQLite file on NFS or SMB**: use a local or block-backed volume. Goldberry warns at startup if `/data` is a network filesystem.

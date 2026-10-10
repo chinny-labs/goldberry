@@ -135,7 +135,8 @@ func (s *Service) CreateAdmin(ctx context.Context, actor store.User, in AdminInp
 // KidInput adds a kid.
 type KidInput struct{ Username, DisplayName, PIN string }
 
-// CreateKid adds a kid with Spend/Save/Give jars split 70/20/10.
+// CreateKid adds a kid with Spend/Save/Give jars split 70/20/10, plus an
+// Invest jar (and DefaultInvestSplit) while investing is on.
 func (s *Service) CreateKid(ctx context.Context, actor store.User, in KidInput) (store.User, error) {
 	if err := requireAdmin(actor); err != nil {
 		return store.User{}, err
@@ -170,6 +171,11 @@ func (s *Service) CreateKid(ctx context.Context, actor store.User, in KidInput) 
 				return err
 			}
 			if err := tx.PutSplitRule(ctx, store.SplitRule{KidID: kid.ID, JarID: jar.ID, BasisPoints: d.BPS}); err != nil {
+				return err
+			}
+		}
+		if on, err := tx.GetSetting(ctx, settingInvesting); err == nil && on == "1" {
+			if _, err := s.ensureInvestJar(ctx, tx, kid.ID); err != nil {
 				return err
 			}
 		}

@@ -249,6 +249,17 @@ A request reserves the money as soon as it's made. Only approval moves it, and e
 - **Drawing:** SVG built on the server (ADR 0013), so it works without JavaScript and under the CSP. Jar lines keep the jar hue and add a dash pattern, with a legend, because hue alone isn't enough for colour-blind readers.
 - The balance at the range start comes from one `SUM … GROUP BY jar_id` before it, and the changes from `ListLedger` with a date window. Nothing is cached.
 
+### 7.6 Investing
+
+Kids buy and sell real US stocks and funds (ETFs) at real prices, with the money in a fourth jar. ADR 0014 records the model; `docs/operations/investing.md` covers setup.
+
+- **Invest jar.** A jar of kind `invest`. Turning investing on (Settings → Investing) gives every kid one, and moves kids on the plain 70/20/10 split to 50/20/10/20 (Spend/Save/Give/Invest). Customised splits are left alone. It behaves like any other jar: kids can move money in and out and ask for it.
+- **Prices** come from Finnhub through a `market.Provider` interface (with a fake for tests), using the household's own free key (`GOLDBERRY_FINNHUB_API_KEY`). Investing stays off without a key, and needs a USD household. Quotes are cached (1 min open, 30 min closed). An old price is shown and marked, but never filled.
+- **Orders** are market orders by dollar amount (fractional shares to a millionth; minimum $1). A buy debits the jar when it's placed. While the market is closed, orders wait and fill at the next opening price. A waiting order can be cancelled, which reverses its debit. A sale returns at most its average-cost basis. A loss comes off by itself, and a profit becomes **earnings owed** that a parent pays (`invest_gain`), notified in the bell.
+- **Locks.** A whole-jar lock on Invest stops buying; selling is never blocked. Investing entries can't be reversed from the ledger. An Invest jar with holdings or waiting orders can't be archived.
+- **Pages.** Kids get `/invest` (cash ready, worth now vs paid, holdings, waiting orders, a value-vs-paid graph from daily snapshots, starter funds and familiar companies, a tip of the day), `/invest/stocks/:symbol` (price, today's move, buy and sell), `/invest/find` (search) and `/invest/learn` (glossary and habits). Parents get a card on each kid's page, a read-only `/admin/kids/:id/invest`, and unpaid earnings on the dashboard.
+- **Tips for kids.** Every investing word and number has a "?" (a `<details>`, so it works without JS) with a one- or two-sentence explanation written for a ten-year-old, and a link to the glossary. On a phone a tip opens as a sheet above the tab bar.
+
 ## 8. Notifications
 
 Every notification is first a **row in `notifications`**, one per recipient. Email is an optional second channel that delivers a copy. If SMTP is down or never configured, nothing is lost.
@@ -266,6 +277,9 @@ Every notification is first a **row in `notifications`**, one per recipient. Ema
 | Recurring allowance or interest posted |  | ✓ | No (weekly digest optional) |
 | SMTP send failing | ✓ |  | n/a (in-app banner) |
 | Kid overrode or removed own jar lock | ✓ |  | No |
+| A waiting order filled at the open |  | ✓ | No |
+| A sale made a profit (earnings owed) | ✓ |  | No |
+| Earnings paid |  | ✓ | No |
 
 Each admin chooses per event type: in-app only, or in-app plus email.
 
@@ -341,7 +355,7 @@ sessions(id_hash PK, user_id, device_label, remember,
 auth_attempts(user_id PK, failures, window_start, next_allowed_at, locked_at)
 
 -- Money
-jars(id, kid_id, name, kind,           -- spend | save | give | custom
+jars(id, kid_id, name, kind,           -- spend | save | give | invest | custom
      sort_order, archived_at)
 
 split_rules(kid_id, jar_id, basis_points)   -- sums to 10000 per kid
@@ -352,6 +366,7 @@ ledger_entries(                          -- APPEND-ONLY: no UPDATE, no DELETE
   amount BIGINT,                         -- signed: + credit, - debit
   kind,                                  -- deposit | withdrawal | adjustment | allowance
                                          -- | interest | transfer_in | transfer_out | reversal
+                                         -- | invest_buy | invest_sell | invest_gain (§7.6)
   comment, private_note,
   actor_id,                              -- user who caused it; NULL = system (scheduler)
   reverses_id,                           -- set on kind = reversal
@@ -391,6 +406,19 @@ jar_locks(id, jar_id,
 lock_overrides(id, lock_id, kid_id, action,  -- once | removed
                ledger_entry_id, request_id, created_at)
 
+-- Investing (§7.6). Prices are micro-dollars; shares are micro-shares.
+securities(symbol PK, name, kind, updated_at)          -- kind: stock | fund
+quotes(symbol PK, price, open, prev_close, quoted_at, fetched_at)   -- a cache; not exported
+orders(id, kid_id, jar_id, symbol, side,               -- buy | sell
+       amount,                                         -- buy: cents
+       shares,                                         -- micro-shares (a sell's, or a buy's once filled)
+       status,                                         -- queued | filled | cancelled
+       price, proceeds, cost_basis, ledger_entry_id, placed_by,
+       idempotency_key UNIQUE, created_at, filled_at, cancelled_at)
+payouts(id, kid_id, jar_id, order_id UNIQUE, amount,   -- a sale's profit
+        status, paid_by, paid_at, ledger_entry_id, created_at)   -- pending | paid
+portfolio_snapshots(kid_id, day, value, cost) PRIMARY KEY (kid_id, day)
+
 -- Notifications
 notifications(id, recipient_id, kind, payload JSON,
               request_id, read_at, created_at)
@@ -426,6 +454,9 @@ The app is server-rendered with Go `html/template`, and HTMX swaps fragments. HT
 | `POST /logout` | Signed in | Revoke the session |
 | `GET /` | Kid | Home: jars, available vs pending, goals, recent activity |
 | `GET /ledger` | Kid | Own history, filter by jar |
+| `GET /invest`, `GET /invest/find`, `GET /invest/stocks/:symbol` | Kid | Investing: portfolio, search, one stock or fund (§7.6) |
+| `POST /invest/orders`, `POST /invest/orders/:id/cancel` | Kid | Buy or sell; cancel a waiting order |
+| `GET /invest/learn` | Signed in | Investing words and habits, for kids |
 | `GET /graph` | Kid | Own balance graph: `?range=1w\|1m\|3m` or `?from=&to=`, `&show=total\|jars\|<jar id>` (§7.5) |
 | `POST /requests`, `POST /requests/:id/cancel` | Kid | Create or cancel a withdrawal request |
 | `POST /goals`, `POST /goals/:id` | Kid | Create or edit own goals |
@@ -434,6 +465,9 @@ The app is server-rendered with Go `html/template`, and HTMX swaps fragments. HT
 | `GET /admin` | Admin | Dashboard: a card per kid plus the pending-requests queue |
 | `GET /admin/kids/:id` | Admin | One kid: jars, locks, ledger, schedules, interest, goals |
 | `GET /admin/kids/:id/graph` | Admin | One kid's balance graph (§7.5) |
+| `GET /admin/kids/:id/invest` | Admin | One kid's investments, read-only |
+| `POST /admin/payouts/:id/pay`, `POST /admin/orders/:id/cancel` | Admin | Pay investing earnings; cancel a waiting order |
+| `POST /admin/settings/investing` | Admin | Turn investing on or off |
 | `POST /admin/kids/:id/entries` | Admin | Add or remove funds |
 | `POST /admin/entries/:id/reverse` | Admin | Reverse a ledger entry |
 | `POST /admin/requests/:id/{approve,deny}` | Admin | Decide a request, with an optional note |
@@ -481,6 +515,7 @@ Configuration is env vars only, and a `/data/config.env` file is optional. Every
 | `GOLDBERRY_BACKUP_SCHEDULE` / `_RETAIN` | `03:15` / `14` | SQLite snapshots (§12.5) |
 | `GOLDBERRY_SMTP_HOST`, `_PORT`, `_SECURITY`, `_USERNAME`, `_PASSWORD`, `_FROM` | *(none)* | Override and lock the UI's email settings. `_PASSWORD_FILE` is also accepted, for Docker and K8s secrets. |
 | `GOLDBERRY_LOG_FORMAT` | `json` | `json` or `text` (`log/slog`) |
+| `GOLDBERRY_FINNHUB_API_KEY` | *(none)* | Market prices for investing (§7.6). Investing stays off without it. `_FILE` works too. |
 | `TZ` | `UTC` | Default for the household timezone at setup |
 
 ### 12.3 Docker Compose
@@ -581,6 +616,7 @@ As in Copperkeep, use `docs/adr/`. Seed it with these:
 | 0009 | Jar locks: admin locks are hard, kid self-locks are soft with an override gauntlet |
 | 0010 | AGPL-3.0 licence, matching Copperkeep |
 | 0013 | Charts are SVG drawn on the server |
+| 0014 | Investing is a simulated brokerage at real prices, with parent-paid profit |
 
 ## 14. Phasing
 

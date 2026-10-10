@@ -272,6 +272,10 @@ func (s *Service) Reverse(ctx context.Context, actor store.User, entryID string)
 		if orig.TransferID != "" {
 			return ErrCannotReverseMove
 		}
+		switch orig.Kind {
+		case store.KindInvestBuy, store.KindInvestSell, store.KindInvestGain:
+			return ErrCannotReverseInvest
+		}
 		group := []store.LedgerEntry{orig}
 		if orig.BatchID != "" {
 			if group, err = tx.ListBatch(ctx, orig.BatchID); err != nil {

@@ -13,6 +13,8 @@ services:
       GOLDBERRY_SECRET_KEY_FILE: /run/secrets/goldberry_key
       GOLDBERRY_BASE_URL: https://goldberry.home.example.com
       TZ: America/New_York
+      # Investing: a free Finnhub API key turns on real stock prices.
+      # GOLDBERRY_FINNHUB_API_KEY_FILE: /run/secrets/finnhub_key
       # Plain-HTTP testing only (no TLS proxy in front). Remove for real use.
       # GOLDBERRY_INSECURE_COOKIES: "true"
     volumes:

@@ -83,7 +83,7 @@
   <li id="e-{{.GroupKey}}"{{if .AllReversed}} class="struck"{{end}}>
     <div class="what">
       <strong>{{if .IsMove}}Moved {{.Jars}}{{else if .Comment}}{{.Comment}}{{else if eq .Kind "deposit"}}Money added{{else if eq .Kind "withdrawal"}}Money out{{else if eq .Kind "reversal"}}Undo{{else}}{{.Kind}}{{end}}</strong>
-      <span class="meta">{{if eq .Kind "reversal"}}Undone by {{.ActorName}}{{else if .AllReversed}}Undone{{else if eq .Kind "allowance"}}Allowance{{else if .RequestID}}Approved by {{.ActorName}}{{else if .ActorName}}{{if $v.IsKid}}From {{end}}{{.ActorName}}{{else}}Automatic{{end}}{{if not .IsMove}} · {{.Jars}}{{end}} · {{$v.When .EffectiveAt}}</span>
+      <span class="meta">{{if eq .Kind "reversal"}}Undone by {{.ActorName}}{{else if .AllReversed}}Undone{{else if eq .Kind "allowance"}}Allowance{{else if or (eq .Kind "invest_buy") (eq .Kind "invest_sell")}}Investing{{else if eq .Kind "invest_gain"}}Earnings paid by {{.ActorName}}{{else if .RequestID}}Approved by {{.ActorName}}{{else if .ActorName}}{{if $v.IsKid}}From {{end}}{{.ActorName}}{{else}}Automatic{{end}}{{if not .IsMove}} · {{.Jars}}{{end}} · {{$v.When .EffectiveAt}}</span>
       {{if and $v.IsAdmin .PrivateNote}}<span class="note">Note: {{.PrivateNote}}</span>{{end}}
     </div>
     <span class="amt {{if .IsMove}}amt-move{{else if gt .Amount 0}}amt-credit{{else}}amt-debit{{end}}">{{if .IsMove}}{{$v.Money .Amount}}{{else}}{{$v.Signed .Amount}}{{end}}</span>
@@ -163,4 +163,35 @@
   <span class="small">See the graph →</span>
 </a>
 {{end}}
+{{end}}
+
+{{/* Investing tip: a "?" that opens a kid-friendly explanation (tips.go). Call with (tip "key"). */}}
+{{define "tip"}}<details class="tip"><summary aria-label="{{.Ask}}"><span aria-hidden="true">?</span></summary><span class="tip-body" role="note"><strong>{{.Emoji}} {{.Term}}</strong> {{.Text}} <a href="/invest/learn#{{.Key}}">All the words</a></span></details>{{end}}
+
+{{define "i-invest"}}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15c0-3-2.5-5.5-7-5.5 0 3 2.5 5.5 7 5.5z"/></svg>{{end}}
+
+{{/* Up or down, in words and colour. Call with (pair $view amount). */}}
+{{define "gain"}}{{if gt .X 0}}<span class="gain gain-up">▲ up {{.V.Money .X}}</span>{{else if lt .X 0}}<span class="gain gain-down">▼ down {{.V.Money (neg .X)}}</span>{{else}}<span class="gain muted">even</span>{{end}}{{end}}
+
+{{/* Starter picks: cards that open a stock's page. Call with (pair $view picks). */}}
+{{define "picks"}}
+<ul class="picks">
+  {{range .X}}<li><a class="card card-link" href="/invest/stocks/{{.Symbol}}"><strong>{{.Name}}</strong> <span class="small muted">{{.Symbol}}</span><span class="small">{{.Why}}</span></a></li>{{end}}
+</ul>
+{{end}}
+
+{{/* Unpaid investing earnings with Pay buttons (admins). Call with (pair $view payouts). */}}
+{{define "earnings"}}
+{{$v := .V}}
+<ul class="list">
+  {{range .X}}
+  <li>
+    <div class="what"><strong>{{.KidName}} sold {{.Symbol}} for more than they paid</strong><span class="meta">{{$v.When .CreatedAt}} · the profit is yours to pay</span></div>
+    <form method="post" action="/admin/payouts/{{.ID}}/pay">
+      {{template "csrf" $v}}<input type="hidden" name="next" value="/admin/kids/{{.KidID}}">
+      <button class="btn btn-primary btn-sm" type="submit">Pay {{$v.Money .Amount}}</button>
+    </form>
+  </li>
+  {{end}}
+</ul>
 {{end}}

@@ -30,6 +30,9 @@ const (
 	LockOverridden   = "lock_overridden"   // → admins
 	GoalReached      = "goal_reached"      // → kid and admins
 	InterestPosted   = "interest_posted"   // → kid
+	OrderFilled      = "order_filled"      // → kid (a queued order went through)
+	EarningsOwed     = "earnings_owed"     // → admins (a sale made a profit)
+	EarningsPaid     = "earnings_paid"     // → kid
 )
 
 // Payload is the JSON stored with a notification. Only what the message needs.
@@ -133,6 +136,15 @@ func Render(n store.Notification, cur money.Currency) Message {
 		return Message{what, body}
 	case GoalReached:
 		return Message{fmt.Sprintf("%s reached a goal: %s", p.KidName, p.Text), fmt.Sprintf("%s saved in %s", amt, p.Jar)}
+	case OrderFilled:
+		if p.Note == "sell" {
+			return Message{fmt.Sprintf("You sold %s", p.Text), fmt.Sprintf("for %s when the market opened", amt)}
+		}
+		return Message{fmt.Sprintf("You bought %s", p.Text), fmt.Sprintf("with %s when the market opened", amt)}
+	case EarningsOwed:
+		return Message{fmt.Sprintf("%s earned %s investing", p.KidName, amt), fmt.Sprintf("Profit from selling %s. Pay it from %s’s page.", p.Text, p.KidName)}
+	case EarningsPaid:
+		return Message{fmt.Sprintf("%s paid your earnings: %s", p.ActorName, cur.Signed(p.Amount)), fmt.Sprintf("Profit from selling %s · now in %s", p.Text, p.Jar)}
 	case InterestPosted:
 		return Message{fmt.Sprintf("Interest: %s", cur.Signed(p.Amount)), p.Jar + " · " + p.Text}
 	default:

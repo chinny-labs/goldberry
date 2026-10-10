@@ -86,6 +86,7 @@ const (
 	JarSpend  JarKind = "spend"
 	JarSave   JarKind = "save"
 	JarGive   JarKind = "give"
+	JarInvest JarKind = "invest"
 	JarCustom JarKind = "custom"
 )
 
@@ -125,6 +126,9 @@ const (
 	KindTransferIn  EntryKind = "transfer_in"
 	KindTransferOut EntryKind = "transfer_out"
 	KindReversal    EntryKind = "reversal"
+	KindInvestBuy   EntryKind = "invest_buy"  // cash out of the Invest jar into a buy order
+	KindInvestSell  EntryKind = "invest_sell" // a sale's proceeds, up to what was paid
+	KindInvestGain  EntryKind = "invest_gain" // a sale's profit, paid by a parent
 )
 
 // LedgerEntry is one append-only money movement. Amount is signed minor units.
@@ -323,4 +327,98 @@ type InterestRule struct {
 type DatedAmount struct {
 	Amount      int64
 	EffectiveAt time.Time
+}
+
+// Security is a stock or fund kids have looked at or bought (plan §7.6).
+type Security struct {
+	Symbol    string
+	Name      string
+	Kind      string // stock | fund
+	UpdatedAt time.Time
+}
+
+// Quote is the last price seen for a symbol, in micro-dollars.
+type Quote struct {
+	Symbol    string
+	Price     int64
+	Open      int64
+	PrevClose int64
+	QuotedAt  time.Time // the market's time for the price
+	FetchedAt time.Time // when Goldberry asked
+}
+
+type OrderSide string
+
+const (
+	SideBuy  OrderSide = "buy"
+	SideSell OrderSide = "sell"
+)
+
+type OrderStatus string
+
+const (
+	OrderQueued    OrderStatus = "queued" // waiting for the market to open
+	OrderFilled    OrderStatus = "filled"
+	OrderCancelled OrderStatus = "cancelled"
+)
+
+// Order is a kid buying or selling. A buy has Amount (cash, minor units) and
+// gets Shares when filled; a sell has Shares (micro-shares) and gets Proceeds
+// and CostBasis. Price is the fill price in micro-dollars.
+type Order struct {
+	ID             string
+	KidID          string
+	JarID          string
+	Symbol         string
+	Side           OrderSide
+	Amount         int64
+	Shares         int64
+	Status         OrderStatus
+	Price          int64
+	Proceeds       int64
+	CostBasis      int64
+	LedgerEntryID  string // a buy's debit, or a sale's credit
+	PlacedBy       string
+	IdempotencyKey string
+	CreatedAt      time.Time
+	FilledAt       *time.Time
+	CancelledAt    *time.Time
+
+	// Filled by list queries.
+	Name         string
+	SecurityKind string
+}
+
+// Payout is a sale's profit, owed by the parents until one of them pays it.
+type Payout struct {
+	ID            string
+	KidID         string
+	JarID         string
+	OrderID       string
+	Amount        int64
+	Status        string // pending | paid
+	PaidBy        string
+	PaidAt        *time.Time
+	LedgerEntryID string
+	CreatedAt     time.Time
+
+	// Filled by list queries.
+	KidName    string
+	Symbol     string
+	PaidByName string
+}
+
+// Snapshot is a kid's investments at the end of a household day.
+type Snapshot struct {
+	KidID string
+	Day   string // YYYY-MM-DD
+	Value int64
+	Cost  int64
+}
+
+// OrderFilter narrows ListOrders. Empty fields match everything.
+type OrderFilter struct {
+	KidID  string
+	Status OrderStatus
+	Limit  int
 }

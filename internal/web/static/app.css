@@ -21,6 +21,7 @@
   --gb-gold: #E2A81B; --gb-gold-ink: #7A5200; --gb-gold-tint: #FBEFCF; --gb-on-gold: #13312E;
   --gb-berry: #B4436C; --gb-berry-ink: #9A3359; --gb-berry-tint: #F6E1E8;
   --gb-slate: #4F6460; --gb-slate-tint: #E9EEEC;
+  --gb-indigo: #3D63DD; --gb-indigo-ink: #2A48A8; --gb-indigo-tint: #E2E8FB;
   --gb-danger: #B42318; --gb-danger-tint: #FBE4E1;
   --gb-side: #13312E; --gb-side-ink: #E7EFEC; --gb-side-muted: #9DB2AD;
   --gb-s1: 4px; --gb-s2: 8px; --gb-s3: 12px; --gb-s4: 16px; --gb-s5: 24px; --gb-s6: 32px; --gb-s7: 48px; --gb-s8: 64px;
@@ -36,6 +37,7 @@
     --gb-gold: #F0C04A; --gb-gold-ink: #F0C04A; --gb-gold-tint: #3A3015; --gb-on-gold: #0E1A19;
     --gb-berry: #E68AAB; --gb-berry-ink: #E68AAB; --gb-berry-tint: #3B2030;
     --gb-slate: #9DB2AD; --gb-slate-tint: #1D2E2B;
+    --gb-indigo: #8FA8FF; --gb-indigo-ink: #B5C5FF; --gb-indigo-tint: #1C2547;
     --gb-danger: #F2877B; --gb-danger-tint: #3D1F1B;
     --gb-side: #0A1312;
   }
@@ -191,6 +193,7 @@ input:focus, select:focus { border-color: var(--gb-river); outline: 2px solid va
 .jar-save { background: var(--gb-river-tint); } .jar-save::before { background: var(--gb-river); }
 .jar-give { background: var(--gb-berry-tint); } .jar-give::before { background: var(--gb-berry); }
 .jar-custom { background: var(--gb-slate-tint); } .jar-custom::before { background: var(--gb-slate); }
+.jar-invest { background: var(--gb-indigo-tint); } .jar-invest::before { background: var(--gb-indigo); }
 .jar .jar-name { font-weight: 700; font-size: 19px; }
 .jar .big { font-family: var(--gb-display); font-weight: 800; font-size: 56px; line-height: 60px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .jar .held { color: var(--gb-gold-ink); font-weight: 700; }
@@ -204,12 +207,14 @@ input:focus, select:focus { border-color: var(--gb-river); outline: 2px solid va
   border: 1px solid var(--gb-line); border-left-width: 8px; }
 .jar-row.jar-spend { border-left-color: var(--gb-gold); } .jar-row.jar-save { border-left-color: var(--gb-river); }
 .jar-row.jar-give { border-left-color: var(--gb-berry); } .jar-row.jar-custom { border-left-color: var(--gb-slate); }
+.jar-row.jar-invest { border-left-color: var(--gb-indigo); }
 .jar-row::before { display: none; }
 
 .jar-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--gb-s2); font-size: 14px; line-height: 20px; }
 .jar-chips > div { padding: 8px 10px; border-radius: 10px; }
 .jar-chips .spend { background: var(--gb-gold-tint); } .jar-chips .save { background: var(--gb-river-tint); }
 .jar-chips .give { background: var(--gb-berry-tint); } .jar-chips .custom { background: var(--gb-slate-tint); }
+.jar-chips .invest { background: var(--gb-indigo-tint); }
 
 /* --- lists ------------------------------------------------------------------ */
 .list { list-style: none; margin: 0; padding: 0 var(--gb-s4); background: var(--gb-surface); border: 1px solid var(--gb-line); border-radius: var(--gb-r-lg); }
@@ -320,6 +325,7 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-directio
 
 .split-bar { display: block; width: 100%; height: 12px; border-radius: 999px; overflow: hidden; background: var(--gb-sunk); }
 .fill-spend { fill: var(--gb-gold); } .fill-save { fill: var(--gb-river); } .fill-give { fill: var(--gb-berry); } .fill-custom { fill: var(--gb-slate); }
+.fill-invest { fill: var(--gb-indigo); }
 
 /* Jar picker cards (ask for money, move). */
 .jar-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
@@ -412,10 +418,13 @@ form .row label.small { white-space: nowrap; }
 .line-spend { stroke: var(--gb-gold); }
 .line-give { stroke: var(--gb-berry); stroke-dasharray: 1 5; }
 .line-custom { stroke: var(--gb-slate); stroke-dasharray: 8 5; }
+.line-invest { stroke: var(--gb-indigo); stroke-dasharray: 3 3 9 3; }
+.line-worth { stroke: var(--gb-indigo); stroke-width: 2.5; }
 .line-save.chart-line { stroke-dasharray: 12 4; }
 .chart-area { stroke: none; fill-opacity: 0.12; }
 .area-total, .area-save { fill: var(--gb-river); }
 .area-spend { fill: var(--gb-gold); } .area-give { fill: var(--gb-berry); } .area-custom { fill: var(--gb-slate); }
+.area-invest { fill: var(--gb-indigo); }
 .chart-hit { stroke: transparent; stroke-width: 32; stroke-linecap: round; }
 .chart-ring { stroke: var(--gb-surface); stroke-width: 13; stroke-linecap: round; }
 .chart-dot { stroke-width: 9; stroke-linecap: round; stroke-dasharray: none; }
@@ -430,3 +439,52 @@ form .row label.small { white-space: nowrap; }
 .graph-preview .chart { pointer-events: none; }
 .list > li:target { background: var(--gb-gold-tint); margin: 0 calc(-1 * var(--gb-s4)); padding-left: var(--gb-s4); padding-right: var(--gb-s4); }
 .list > li { scroll-margin-top: var(--gb-s6); }
+
+/* --- investing --------------------------------------------------------------
+   Tips are <details>: a "?" that opens a short explanation. On a phone it
+   opens as a sheet above the tab bar; wider, as a popover under the "?". */
+.tip { display: inline-block; position: relative; vertical-align: middle; font-weight: 400; }
+.tip > summary { list-style: none; cursor: pointer; display: inline-grid; place-items: center; width: 24px; height: 24px;
+  border-radius: 999px; border: 1.5px solid var(--gb-indigo); color: var(--gb-indigo-ink); background: var(--gb-surface);
+  font: 700 14px/1 var(--gb-body); position: relative; }
+.tip > summary::-webkit-details-marker { display: none; }
+.tip > summary::after { content: ""; position: absolute; inset: -10px; } /* a 44px target around the 24px dot */
+.tip[open] > summary { background: var(--gb-indigo); color: var(--gb-surface); }
+.tip-body { position: fixed; left: var(--gb-s4); right: var(--gb-s4); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 20;
+  display: block; padding: var(--gb-s4); border-radius: var(--gb-r-md); background: var(--gb-surface); color: var(--gb-ink);
+  border: 2px solid var(--gb-indigo); box-shadow: 0 8px 28px rgba(19, 49, 46, 0.25); font-size: 16px; line-height: 24px; text-align: left; }
+.tip-body strong { display: block; margin-bottom: 4px; font-family: var(--gb-display); font-size: 18px; }
+.tip-body a { display: inline-block; margin-top: 6px; font-size: 14px; }
+@media (min-width: 900px) {
+  .tip-body { position: absolute; left: 50%; right: auto; bottom: auto; top: calc(100% + 8px); transform: translateX(-50%); width: 300px; }
+}
+.invest-top { display: grid; gap: var(--gb-s4); }
+@media (min-width: 640px) { .invest-top { grid-template-columns: 1fr 1fr; } }
+.invest-top .jar { overflow: visible; } /* let a tip's popover out */
+.invest-top .jar::before { border-radius: var(--gb-r-lg) var(--gb-r-lg) 0 0; }
+.invest-top .jar-name { display: flex; align-items: center; gap: var(--gb-s2); font-weight: 700; }
+.market-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gb-s1) var(--gb-s3); }
+.market-line .row { gap: var(--gb-s2); }
+.market-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px;
+  background: var(--gb-sunk); font-weight: 700; font-size: 15px; }
+.market-open { background: var(--gb-river-tint); color: var(--gb-river-strong); }
+.gain { font-weight: 700; white-space: nowrap; }
+.gain-up { color: var(--gb-river-strong); }
+.gain-down { color: var(--gb-ink); }
+.kind-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 999px; font-size: 13px; line-height: 22px;
+  font-weight: 700; background: var(--gb-sunk); color: var(--gb-ink); }
+.kind-fund { background: var(--gb-indigo-tint); color: var(--gb-indigo-ink); }
+.holdings .holding-num { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.trick { display: flex; gap: var(--gb-s3); align-items: flex-start; background: var(--gb-gold-tint); border-color: transparent; }
+.trick-icon { font-size: 24px; line-height: 26px; }
+.earnings-alert p { margin: 0; }
+.picks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gb-s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.picks .card-link { display: flex; flex-direction: column; gap: 2px; height: 100%; }
+.invest-stats { gap: var(--gb-s5); }
+.owns { padding-top: var(--gb-s3); border-top: 1px solid var(--gb-sunk); }
+.glossary { margin: 0; display: flex; flex-direction: column; gap: var(--gb-s3); }
+.glossary dt { font-family: var(--gb-display); font-weight: 700; font-size: 19px; }
+.glossary dd { margin: 4px 0 0; }
+.glossary > div:target { border-color: var(--gb-indigo); border-width: 2px; }
+.glossary > div { scroll-margin-top: var(--gb-s6); }
+.tricks { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: var(--gb-s2); }

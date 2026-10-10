@@ -1,0 +1,129 @@
+{{define "main"}}
+{{$v := .}}{{$d := .D}}{{$p := $d.P}}
+{{if not $p.HasJar}}
+<p class="card empty-state">{{if $d.ReadOnly}}{{$d.Kid.DisplayName}} doesn’t have an Invest jar yet. Turn investing on in Settings.{{else}}You don’t have an Invest jar yet. Ask a grown-up to turn investing on.{{end}}</p>
+{{else}}
+<section class="invest-top" aria-label="Your money for investing">
+  <div class="jar jar-invest">
+    <span class="jar-name">Ready to invest {{template "tip" (tip "jar")}}</span>
+    <div class="big">{{$v.Money $p.Jar.Available}}</div>
+    <span class="small">waiting in the {{$p.Jar.Name}} jar</span>
+  </div>
+  <div class="card stack-sm">
+    <span class="jar-name">Invested · worth now {{template "tip" (tip "worth")}}</span>
+    <div class="money-l">{{$v.Money $p.Value}}</div>
+    {{if $p.Holdings}}
+    <span class="small">You paid {{$v.Money $p.Cost}} {{template "tip" (tip "paid")}}</span>
+    <span>{{template "gain" (pair $v $p.Gain)}} {{template "tip" (tip "gain")}}</span>
+    {{else}}
+    <span class="small muted">Nothing invested yet.</span>
+    {{end}}
+  </div>
+</section>
+
+<div class="market-line">
+  <span class="row">{{if not $p.MarketOK}}<span class="market-pill">Prices are taking a break</span>
+  {{else if $p.Market.Open}}<span class="market-pill market-open"><span aria-hidden="true">●</span> The market is open</span>
+  {{else}}<span class="market-pill"><span aria-hidden="true">☾</span> The market is closed{{if $p.Market.Holiday}} for {{$p.Market.Holiday}}{{end}}</span>{{end}}
+  {{template "tip" (tip "market")}}</span>
+  <span class="small muted">{{if not $p.MarketOK}}Try again in a minute.{{else if $p.Market.Open}}Orders go through right away.{{else}}Orders wait until it opens.{{end}}</span>
+</div>
+
+{{if $p.Owed}}
+<div class="alert alert-ok earnings-alert" role="status">
+  <div><span aria-hidden="true">🎉</span> <strong>{{if $d.ReadOnly}}You owe {{$d.Kid.DisplayName}} {{$v.Money $p.OwedTotal}} in earnings.{{else}}You made {{$v.Money $p.OwedTotal}} selling for more than you paid!{{end}}</strong>
+  {{if not $d.ReadOnly}}A grown-up will pay it into your jar.{{end}} {{template "tip" (tip "earnings")}}</div>
+</div>
+{{end}}
+
+{{if not $d.ReadOnly}}
+<div class="stack-sm">
+  <a class="btn btn-kid btn-block" href="/invest/find">{{template "i-plus"}} Find something to buy</a>
+  <a class="small" href="/invest/learn">What do all these words mean?</a>
+</div>
+<aside class="card trick" aria-label="Tip of the day"><span class="trick-icon" aria-hidden="true">💡</span><p><strong>Tip of the day.</strong> {{$d.Trick}}</p></aside>
+{{end}}
+
+{{if $p.Holdings}}
+<section class="stack">
+  <h2>{{if $d.ReadOnly}}Investments{{else}}My investments{{end}}</h2>
+  <ul class="list holdings">
+    {{range $p.Holdings}}
+    <li>
+      <div class="what">
+        <strong>{{if $d.ReadOnly}}{{.Name}}{{else}}<a href="/invest/stocks/{{.Symbol}}">{{.Name}}</a>{{end}}</strong>
+        <span class="meta"><span class="kind-badge kind-{{.Kind}}">{{if eq .Kind "fund"}}Fund{{else}}Stock{{end}}</span> {{.Symbol}} · {{$v.Shares .Shares}} {{$v.ShareWord .Shares}}{{if .Reserved}} · {{$v.Shares .Reserved}} waiting to sell{{end}}{{if .Stale}} · old price{{end}}</span>
+        <span class="meta">Paid {{$v.Money .Cost}}{{if .DayChange}} · today {{template "gain" (pair $v .DayChange)}}{{end}}</span>
+      </div>
+      <div class="holding-num">
+        <span class="amt">{{$v.Money .Value}}</span>
+        <span class="small">{{template "gain" (pair $v .Gain)}}</span>
+      </div>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+{{if $p.Queued}}
+<section class="stack">
+  <h2>Waiting for the market {{template "tip" (tip "waiting")}}</h2>
+  <ul class="list">
+    {{range $p.Queued}}
+    <li>
+      <div class="what"><strong>{{if eq .Side "buy"}}Buy {{$v.Money .Amount}} of {{.Symbol}}{{else}}Sell {{$v.Shares .Shares}} {{$v.ShareWord .Shares}} of {{.Symbol}}{{end}}</strong><span class="meta">{{.Name}} · placed {{$v.When .CreatedAt}}</span></div>
+      <form method="post" action="{{if $d.ReadOnly}}/admin/orders/{{.ID}}/cancel{{else}}/invest/orders/{{.ID}}/cancel{{end}}">
+        {{template "csrf" $v}}<input type="hidden" name="next" value="{{$d.Base}}">
+        <button class="btn btn-sm btn-outline" type="submit" aria-label="Cancel the order for {{.Symbol}}">Cancel</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+{{with $d.Chart}}
+<section class="card stack" id="growth">
+  <div class="spread"><h2>How it’s grown</h2>
+    <nav class="row-wrap" aria-label="Time range">{{range $d.Ranges}}<a class="chip{{if .On}} chip-on{{end}}" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>
+  </div>
+  {{template "chart" .}}
+  <ul class="chart-legend" aria-label="Lines">{{range .Lines}}<li>{{template "line-key" .Class}}<span>{{.Name}}</span> <strong class="num">{{$v.Money .End}}</strong></li>{{end}}</ul>
+  <p class="caption">When the top line is above the dashed one, your investments are worth more than you paid.</p>
+</section>
+{{end}}
+
+{{if and (not $p.Holdings) (not $d.ReadOnly)}}
+<section class="stack">
+  <h2>Good places to start</h2>
+  <div class="small">Funds hold lots of companies at once {{template "tip" (tip "fund")}}, so they’re a calm first step.</div>
+  {{template "picks" (pair $v $d.Funds)}}
+  <h3>Companies you might know</h3>
+  {{template "picks" (pair $v $d.Stocks)}}
+</section>
+{{end}}
+
+{{if $p.Recent}}
+<section class="stack">
+  <h2>History</h2>
+  <ul class="list">
+    {{range $p.Recent}}
+    <li{{if eq .Status "cancelled"}} class="struck"{{end}}>
+      <div class="what">
+        <strong>{{if eq .Side "buy"}}Bought{{else}}Sold{{end}} {{.Symbol}}{{if eq .Status "cancelled"}} (cancelled){{end}}</strong>
+        <span class="meta">{{if eq .Status "filled"}}{{$v.Shares .Shares}} {{$v.ShareWord .Shares}} at {{$v.Price .Price}} · {{$v.When (derefTime .FilledAt)}}{{else}}{{$v.When .CreatedAt}}{{end}}</span>
+      </div>
+      <span class="amt">{{if eq .Side "buy"}}{{$v.Money .Amount}}{{else}}{{$v.Money .Proceeds}}{{end}}</span>
+    </li>
+    {{end}}
+    {{range $p.Paid}}
+    <li>
+      <div class="what"><strong>Earnings paid by {{.PaidByName}}</strong><span class="meta">From selling {{.Symbol}} · {{$v.When (derefTime .PaidAt)}}</span></div>
+      <span class="amt amt-credit">{{$v.Signed .Amount}}</span>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{end}}
+{{end}}

@@ -51,6 +51,8 @@ The app's stylesheet (`internal/web/static/app.css`) defines these as CSS custom
 | `--gb-gold-tint` | `#FBEFCF` | | Spend jar tint |
 | `--gb-berry` | `#B4436C` | `#E68AAB` | Give jar (text `#9A3359`) |
 | `--gb-berry-tint` | `#F6E1E8` | | Give jar tint |
+| `--gb-indigo` | `#3D63DD` | `#8FA8FF` | Invest jar (text `#2A48A8` / `#B5C5FF`) |
+| `--gb-indigo-tint` | `#E2E8FB` | `#1C2547` | Invest jar tint |
 | `--gb-danger` | `#B42318` | `#F2877B` | Destructive or lock-breaking acts only |
 | `--gb-danger-tint` | `#FBE4E1` | | |
 
@@ -58,5 +60,5 @@ The app's stylesheet (`internal/web/static/app.css`) defines these as CSS custom
 - **Space:** `--gb-s1`…`--gb-s8` = 4, 8, 12, 16, 24, 32, 48, 64 px.
 - **Radius:** sm 8 (inputs, chips), md 12 (buttons), lg 20 (cards, jars), pill.
 - **Touch targets:** ≥ 48 px (44 minimum); PIN keys 72 px.
-- **Jar identity:** Spend = gold, Save = river, Give = berry, custom = slate. Hue is identity, never status: status always comes with a word.
+- **Jar identity:** Spend = gold, Save = river, Give = berry, Invest = indigo, custom = slate. On graphs, each jar line also has its own dash pattern, because some pairs (berry and slate) are too close for colour-blind readers. Hue is identity, never status: status always comes with a word.
 - **Money:** credits in river with a `+`, debits in ink with a true minus `−`. Never colour alone.

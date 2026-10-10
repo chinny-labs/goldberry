@@ -33,6 +33,7 @@ import (
 	"github.com/chinny/goldberry/internal/backup"
 	"github.com/chinny/goldberry/internal/buildinfo"
 	"github.com/chinny/goldberry/internal/config"
+	"github.com/chinny/goldberry/internal/market"
 	"github.com/chinny/goldberry/internal/scheduler"
 	"github.com/chinny/goldberry/internal/service"
 	"github.com/chinny/goldberry/internal/store"
@@ -138,6 +139,10 @@ func serve() error {
 	}
 	defer st.Close()
 	svc := service.New(st, log)
+	if cfg.FinnhubKey != "" {
+		svc.Market = market.NewFinnhub(cfg.FinnhubKey)
+		log.Info("investing: market prices from Finnhub")
+	}
 
 	token := ""
 	if need, err := svc.NeedsSetup(ctx); err != nil {
@@ -169,6 +174,17 @@ func serve() error {
 		}},
 		{Name: "goals", Run: func(ctx context.Context) error {
 			_, err := svc.CheckGoals(ctx)
+			return err
+		}},
+		{Name: "invest-fill", Run: func(ctx context.Context) error {
+			n, err := svc.FillQueued(ctx)
+			if n > 0 {
+				log.Info("filled waiting orders", "count", n)
+			}
+			return err
+		}},
+		{Name: "invest-snapshot", Run: func(ctx context.Context) error {
+			_, err := svc.Snapshot(ctx)
 			return err
 		}},
 		{Name: "request-expiry", Run: func(ctx context.Context) error {

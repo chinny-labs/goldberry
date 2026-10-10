@@ -33,6 +33,14 @@ secretKey:
   existingSecret: ""
   existingSecretKey: secret-key
 
+# Investing: kids buy and sell real US stocks and funds with their Invest jar.
+# Prices come from Finnhub (a free API key from finnhub.io). Without a key,
+# investing stays off. The pod needs HTTPS egress to finnhub.io.
+investing:
+  finnhubKey: ""
+  existingSecret: ""
+  existingSecretKey: finnhub-key
+
 # Use an existing Postgres instead of SQLite (the chart never bundles one).
 postgres:
   external:

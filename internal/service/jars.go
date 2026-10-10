@@ -127,6 +127,22 @@ func (s *Service) ArchiveJar(ctx context.Context, actor store.User, jarID string
 		if jar.Balance != 0 || jar.Held != 0 {
 			return invalid("", "Move the money out of %s before archiving it.", jar.Name)
 		}
+		if jar.Kind == store.JarInvest {
+			orders, err := tx.ListOrders(ctx, store.OrderFilter{KidID: j.KidID})
+			if err != nil {
+				return err
+			}
+			for _, p := range positions(orders) {
+				if p.shares > 0 || p.reserved > 0 {
+					return invalid("", "%s still owns investments. Sell them first.", jar.Name)
+				}
+			}
+			for _, o := range orders {
+				if o.Status == store.OrderQueued {
+					return invalid("", "%s has an order waiting for the market. Cancel it first.", jar.Name)
+				}
+			}
+		}
 		rules, err := tx.ListSplitRules(ctx, j.KidID)
 		if err != nil {
 			return err

@@ -22,6 +22,10 @@
     {{else}}
     <p class="card empty-state">Nothing waiting. When a kid asks for money, it shows up here and in the bell.</p>
     {{end}}
+    {{if .D.Earnings}}
+    <h2>Investing earnings to pay</h2>
+    {{template "earnings" (pair $v .D.Earnings)}}
+    {{end}}
   </section>
 
   <section class="stack" aria-labelledby="kids">

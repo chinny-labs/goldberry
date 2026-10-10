@@ -115,3 +115,20 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) begin(e); });
   btn.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") stop(); });
 });
+
+// Investing tips are <details>: without JS, tapping "?" again closes one.
+// With it, only one is open at a time, and a tap elsewhere or Escape closes it.
+document.addEventListener("DOMContentLoaded", () => {
+  const tips = () => document.querySelectorAll("details.tip[open]");
+  document.addEventListener("toggle", (e) => {
+    if (!e.target.matches?.("details.tip") || !e.target.open) return;
+    for (const t of tips()) if (t !== e.target) t.open = false;
+  }, true);
+  document.addEventListener("click", (e) => {
+    for (const t of tips()) if (!t.contains(e.target)) t.open = false;
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    for (const t of tips()) { t.open = false; t.querySelector("summary")?.focus(); }
+  });
+});

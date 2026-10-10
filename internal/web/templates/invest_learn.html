@@ -1,0 +1,17 @@
+{{define "width"}} narrow{{end}}
+{{define "main"}}
+{{$d := .D}}
+<p>Investing means buying a little piece of something, hoping it grows. Here’s what the words mean.</p>
+<dl class="glossary">
+  {{range $d.Tips}}
+  <div id="{{.Key}}" class="card">
+    <dt><span aria-hidden="true">{{.Emoji}}</span> {{.Term}}</dt>
+    <dd>{{.Text}}</dd>
+  </div>
+  {{end}}
+</dl>
+<section class="stack">
+  <h2>Tricks good investors use</h2>
+  <ol class="tricks">{{range $d.Tricks}}<li>{{.}}</li>{{end}}</ol>
+</section>
+{{end}}
