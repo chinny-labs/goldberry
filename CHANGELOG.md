@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/chinny/goldberry/compare/v1.2.0...v1.3.0) (2026-10-10)
+
+
+### Features
+
+* **api:** backdate entries with effective_at ([6fbd51e](https://github.com/chinny/goldberry/commit/6fbd51ecd437e063d36e2c2efd5d0b08234c7b69))
+* **api:** backdate entries with effective_at ([5ac3624](https://github.com/chinny/goldberry/commit/5ac3624d514a4d9a35a566a7de305630e85945da))
+
 ## [1.2.0](https://github.com/chinny/goldberry/compare/v1.1.0...v1.2.0) (2026-10-10)
 
 
