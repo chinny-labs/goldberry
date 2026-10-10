@@ -9,6 +9,7 @@ Goldberry has a JSON API at `/api/v1` for scripts, Home Assistant and AI tools. 
 - **Kids:** wherever a path says `{kid}`, use the kid's ID or username (`ava`).
 - **Errors:** `{"error": {"code": "...", "message": "...", "field": "..."}}`. `code` is stable: `unauthorized`, `insufficient_scope`, `forbidden`, `not_found`, `bad_request`, `invalid`, `insufficient_funds`, `already_decided`, `conflict`, `rate_limited`, `internal`.
 - **Limits:** about 10 requests a second per token (bursts of 40). An address that sends 10 bad tokens in a minute is blocked for the rest of that minute. Both answer `429` with `Retry-After`.
+- **The block is per address, not per token.** While it lasts it turns away *good* tokens from the same address too, so a script with a stale token can lock out your other tools on that host (or behind that NAT) for up to a minute. Revoke dead tokens and fix scripts that send them. Behind a proxy, set `GOLDBERRY_TRUSTED_PROXIES` so the address is the caller's, not the proxy's.
 
 ## Read
 
