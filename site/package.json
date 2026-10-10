@@ -3,5 +3,5 @@
   "private": true,
   "type": "module",
   "scripts": { "build": "node build.mjs" },
-  "devDependencies": { "marked": "18.0.14" }
+  "devDependencies": { "marked": "18.1.0" }
 }
