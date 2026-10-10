@@ -362,6 +362,67 @@ func (x queries) RevokeUserSessions(ctx context.Context, userID string, at time.
 	return err
 }
 
+// --- API tokens ---------------------------------------------------------------
+
+const tokenCols = `id, token_hash, user_id, label, scopes, created_at, last_used_at, revoked_at` //nolint:gosec // a column list, not a credential
+
+func scanAPIToken(sc interface{ Scan(...any) error }) (APIToken, error) {
+	var t APIToken
+	var scopes string
+	err := sc.Scan(&t.ID, &t.TokenHash, &t.UserID, &t.Label, &scopes, rtime{&t.CreatedAt}, ntime{&t.LastUsedAt}, ntime{&t.RevokedAt})
+	t.Scopes = strings.Fields(scopes)
+	return t, err
+}
+
+func (x queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (APIToken, error) {
+	t, err := scanAPIToken(x.row(ctx, `SELECT `+tokenCols+` FROM api_tokens WHERE token_hash = ?`, tokenHash))
+	return t, notFound(err)
+}
+
+func (x queries) GetAPIToken(ctx context.Context, id string) (APIToken, error) {
+	t, err := scanAPIToken(x.row(ctx, `SELECT `+tokenCols+` FROM api_tokens WHERE id = ?`, id))
+	return t, notFound(err)
+}
+
+func (x queries) ListAPITokens(ctx context.Context, userID string) ([]APIToken, error) {
+	rows, err := x.rows(ctx, `SELECT `+tokenCols+` FROM api_tokens
+		WHERE user_id = ? AND revoked_at IS NULL ORDER BY created_at DESC, id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []APIToken
+	for rows.Next() {
+		t, err := scanAPIToken(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+func (x queries) CreateAPIToken(ctx context.Context, t APIToken) error {
+	_, err := x.exec(ctx, `INSERT INTO api_tokens (`+tokenCols+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		t.ID, t.TokenHash, t.UserID, t.Label, strings.Join(t.Scopes, " "), x.t(t.CreatedAt), x.tp(t.LastUsedAt), x.tp(t.RevokedAt))
+	return err
+}
+
+func (x queries) TouchAPIToken(ctx context.Context, id string, at time.Time) error {
+	_, err := x.exec(ctx, `UPDATE api_tokens SET last_used_at = ? WHERE id = ?`, x.t(at), id)
+	return err
+}
+
+func (x queries) RevokeAPIToken(ctx context.Context, id string, at time.Time) error {
+	_, err := x.exec(ctx, `UPDATE api_tokens SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`, x.t(at), id)
+	return err
+}
+
+func (x queries) RevokeUserAPITokens(ctx context.Context, userID string, at time.Time) error {
+	_, err := x.exec(ctx, `UPDATE api_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`, x.t(at), userID)
+	return err
+}
+
 func (x queries) GetAuthAttempts(ctx context.Context, userID string) (AuthAttempts, error) {
 	a := AuthAttempts{UserID: userID}
 	err := x.row(ctx, `SELECT failures, window_start, next_allowed_at, locked_at FROM auth_attempts WHERE user_id = ?`, userID).

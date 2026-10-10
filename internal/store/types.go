@@ -71,6 +71,19 @@ type Session struct {
 	RevokedAt   *time.Time
 }
 
+// APIToken is a bearer token for the JSON API and MCP server (ADR 0015). It
+// belongs to the admin who minted it; only the SHA-256 of the secret is kept.
+type APIToken struct {
+	ID         string
+	TokenHash  string
+	UserID     string
+	Label      string
+	Scopes     []string
+	CreatedAt  time.Time
+	LastUsedAt *time.Time
+	RevokedAt  *time.Time
+}
+
 // AuthAttempts tracks failed sign-ins per account (plan §4.1).
 type AuthAttempts struct {
 	UserID        string

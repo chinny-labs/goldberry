@@ -44,6 +44,38 @@
   </form>
 </section>
 
+{{if $u.IsAdmin}}
+<section class="card stack">
+  <h2>API tokens</h2>
+  {{if .D.NewToken}}
+  <div class="stack">
+    <p><strong>Copy this token now.</strong> It won’t be shown again.</p>
+    <input readonly value="{{.D.NewToken}}" aria-label="New API token">
+  </div>
+  {{end}}
+  {{if .D.Tokens}}
+  <ul class="list">{{range .D.Tokens}}<li><div class="what"><strong>{{.Label}}</strong><span class="meta">{{range $i, $sc := .Scopes}}{{if $i}}, {{end}}{{$sc}}{{end}} · made {{$v.When .CreatedAt}} · {{if .LastUsedAt}}used {{$v.When .LastUsedAt}}{{else}}never used{{end}}</span></div>
+    <form method="post" action="/admin/tokens/{{.ID}}/revoke">{{template "csrf" $v}}<button class="btn btn-outline" type="submit">Revoke</button></form></li>{{end}}</ul>
+  {{else}}<p class="muted">No tokens. Tokens let scripts and AI tools use the API as {{$u.DisplayName}}.</p>{{end}}
+  {{if eq $u.ID .User.ID}}
+  <form method="post" action="/admin/users/{{$u.ID}}/tokens" class="stack" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field">
+      <label for="token-label">Label <span class="hint">where it’s used</span></label>
+      <input id="token-label" name="label" maxlength="140" required>
+    </div>
+    <fieldset class="field">
+      <legend>What it can do</legend>
+      <label><input type="checkbox" checked disabled> Read balances, history and goals</label>
+      <label><input type="checkbox" name="scope" value="write"> Change jars and goals</label>
+      <label><input type="checkbox" name="scope" value="money"> Move money (add, remove, reverse)</label>
+    </fieldset>
+    <button class="btn btn-outline" type="submit">Create token</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+
 {{if ne $u.ID .User.ID}}
 <form method="post" action="/admin/users/{{$u.ID}}/{{if $u.Disabled}}enable{{else}}disable{{end}}" class="card stack">
   {{template "csrf" .}}

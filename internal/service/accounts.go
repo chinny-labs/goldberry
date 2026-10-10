@@ -251,7 +251,7 @@ func (s *Service) Unlock(ctx context.Context, actor store.User, userID string) e
 }
 
 // SetDisabled disables or re-enables an account. Disabling revokes its
-// sessions. The last active admin can't be disabled, nor can you disable
+// sessions and API tokens. The last active admin can't be disabled, nor can you disable
 // yourself.
 func (s *Service) SetDisabled(ctx context.Context, actor store.User, userID string, disabled bool) error {
 	if err := requireAdmin(actor); err != nil {
@@ -279,6 +279,9 @@ func (s *Service) SetDisabled(ctx context.Context, actor store.User, userID stri
 			}
 			u.DisabledAt = &now
 			if err := tx.RevokeUserSessions(ctx, u.ID, now); err != nil {
+				return err
+			}
+			if err := tx.RevokeUserAPITokens(ctx, u.ID, now); err != nil {
 				return err
 			}
 		} else {

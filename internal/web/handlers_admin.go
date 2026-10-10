@@ -289,11 +289,20 @@ type userData struct {
 	Audit    []store.AuditEntry
 	Names    map[string]string
 	PINLen   int
+	Tokens   []store.APIToken
+	// NewToken is a just-minted secret. It is rendered once, in the response
+	// to the mint POST, and never stored or put in a cookie.
+	NewToken string
 }
 
 func (s *Server) userPage(w http.ResponseWriter, r *http.Request, c *reqCtx) {
+	s.renderUser(w, r, c, r.PathValue("id"), http.StatusOK, "")
+}
+
+// renderUser shows a person's page. newToken, when set, is a secret to show once.
+func (s *Server) renderUser(w http.ResponseWriter, r *http.Request, c *reqCtx, id string, status int, newToken string) {
 	ctx := r.Context()
-	u, err := s.svc.Store.GetUser(ctx, r.PathValue("id"))
+	u, err := s.svc.Store.GetUser(ctx, id)
 	if errors.Is(err, store.ErrNotFound) {
 		s.notFound(w, r)
 		return
@@ -312,6 +321,13 @@ func (s *Server) userPage(w http.ResponseWriter, r *http.Request, c *reqCtx) {
 		s.serverError(w, r, err)
 		return
 	}
+	var tokens []store.APIToken
+	if u.IsAdmin() {
+		if tokens, err = s.svc.APITokens(ctx, *c.User, u.ID); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
 	audit, err := s.svc.Store.ListAudit(ctx, u.ID, 20)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -324,12 +340,12 @@ func (s *Server) userPage(w http.ResponseWriter, r *http.Request, c *reqCtx) {
 		}
 	}
 	v := s.newView(w, r, u.DisplayName, userData{Target: u, Login: states[u.ID], Sessions: sessions, Audit: audit,
-		Names: names, PINLen: c.House.PINLength})
+		Names: names, PINLen: c.House.PINLength, Tokens: tokens, NewToken: newToken})
 	v.Nav, v.Back = "people", "/admin/users"
 	if u.IsKid() {
 		v.Nav = "kid:" + u.ID
 	}
-	s.render(w, r, http.StatusOK, "user", v)
+	s.render(w, r, status, "user", v)
 }
 
 func (s *Server) userSecret(w http.ResponseWriter, r *http.Request, c *reqCtx) {
@@ -377,6 +393,38 @@ func (s *Server) userRevoke(w http.ResponseWriter, r *http.Request, c *reqCtx) {
 		return
 	}
 	s.back(w, r, "/admin/users/"+id, "ok", "Signed out of every device.")
+}
+
+// tokenCreate mints an API token for the signed-in admin. The secret is shown
+// in this response only: a redirect would need a cookie or the database to
+// carry it.
+func (s *Server) tokenCreate(w http.ResponseWriter, r *http.Request, c *reqCtx) {
+	id := r.PathValue("id")
+	if id != c.User.ID {
+		s.fail(w, r, "/admin/users/"+id, service.ErrForbidden)
+		return
+	}
+	secret, _, err := s.svc.CreateAPIToken(r.Context(), *c.User, service.TokenInput{
+		Label: r.PostFormValue("label"), Scopes: r.PostForm["scope"],
+	})
+	if err != nil {
+		s.fail(w, r, "/admin/users/"+id, err)
+		return
+	}
+	s.renderUser(w, r, c, id, http.StatusOK, secret)
+}
+
+func (s *Server) tokenRevoke(w http.ResponseWriter, r *http.Request, c *reqCtx) {
+	t, err := s.svc.Store.GetAPIToken(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.fail(w, r, "/admin/users", err)
+		return
+	}
+	if err := s.svc.RevokeAPIToken(r.Context(), *c.User, t.ID); err != nil {
+		s.fail(w, r, "/admin/users/"+t.UserID, err)
+		return
+	}
+	s.back(w, r, "/admin/users/"+t.UserID, "ok", "Token revoked.")
 }
 
 // --- settings ------------------------------------------------------------------

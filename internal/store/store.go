@@ -51,6 +51,11 @@ type Reader interface {
 	ListSessions(ctx context.Context, userID string, now time.Time) ([]Session, error)
 	GetAuthAttempts(ctx context.Context, userID string) (AuthAttempts, error)
 
+	GetAPITokenByHash(ctx context.Context, tokenHash string) (APIToken, error)
+	GetAPIToken(ctx context.Context, id string) (APIToken, error)
+	// ListAPITokens lists a user's live (unrevoked) tokens, newest first.
+	ListAPITokens(ctx context.Context, userID string) ([]APIToken, error)
+
 	ListJars(ctx context.Context, kidID string) ([]Jar, error)
 	GetJar(ctx context.Context, id string) (Jar, error)
 	JarBalances(ctx context.Context, kidID string) ([]JarBalance, error)
@@ -129,6 +134,10 @@ type Writer interface {
 	TouchSession(ctx context.Context, idHash string, lastSeen, expires time.Time) error
 	RevokeSession(ctx context.Context, idHash string, at time.Time) error
 	RevokeUserSessions(ctx context.Context, userID string, at time.Time) error
+	CreateAPIToken(ctx context.Context, t APIToken) error
+	TouchAPIToken(ctx context.Context, id string, at time.Time) error
+	RevokeAPIToken(ctx context.Context, id string, at time.Time) error
+	RevokeUserAPITokens(ctx context.Context, userID string, at time.Time) error
 	PutAuthAttempts(ctx context.Context, a AuthAttempts) error
 	ClearAuthAttempts(ctx context.Context, userID string) error
 

@@ -466,3 +466,62 @@ func TestGoalsAndInterest(t *testing.T) {
 	leo.post("/login", url.Values{"username": {"leo"}, "secret": {"1357"}}, 200)
 	leo.get("/goals/"+goalID+"/edit", 404)
 }
+
+// TestAPITokens covers minting, showing once, listing and revoking tokens
+// from the People page (ADR 0015).
+func TestAPITokens(t *testing.T) {
+	ts, svc := newServerWithService(t)
+	mom := newBrowser(t, ts)
+	mom.get("/setup", 200)
+	mom.post("/setup", url.Values{"setup_token": {setupToken}, "household_name": {"H"}, "currency": {"USD"}, "timezone": {"UTC"},
+		"display_name": {"Mom"}, "username": {"mom"}, "password": {"correct horse battery"}}, 200)
+	mom.post("/admin/users", url.Values{"role": {"admin"}, "display_name": {"Dad"}, "username": {"dad"}, "password": {"another long one"}}, 200)
+	mom.post("/admin/users", url.Values{"role": {"kid"}, "display_name": {"Ava"}, "username": {"ava"}, "pin": {"2468"}}, 200)
+	id := func(username string) string {
+		u, err := svc.Store.GetUserByUsername(context.Background(), username)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return u.ID
+	}
+	dadID, kidID, momID := id("dad"), id("ava"), id("mom")
+
+	// Kids have no token section.
+	mom.get("/admin/users/"+kidID, 200)
+	mom.mustNotSee("API tokens")
+
+	// Mint: the secret appears once, with the scopes asked for plus read.
+	mom.get("/admin/users/"+momID, 200)
+	mom.mustSee("API tokens", "No tokens.")
+	mom.post("/admin/users/"+momID+"/tokens", url.Values{"label": {"Home Assistant"}, "scope": {"money"}}, 200)
+	secret := find(t, `value="(gb_[A-Za-z0-9_-]+)"`, mom.last)
+	mom.mustSee("Copy this token now", "Home Assistant", "read, money", "never used")
+	mom.get("/admin/users/"+momID, 200)
+	mom.mustSee("Home Assistant")
+	mom.mustNotSee(secret, "Copy this token now")
+	if _, tok, err := svc.AuthenticateToken(context.Background(), secret); err != nil || tok.Label != "Home Assistant" {
+		t.Fatalf("minted secret doesn't authenticate: %v", err)
+	}
+
+	// You can mint only for yourself; you can see, and revoke, another admin's.
+	mom.post("/admin/users/"+dadID+"/tokens", url.Values{"label": {"for dad"}}, 0)
+	mom.mustNotSee("Copy this token now")
+	mom.get("/admin/users/"+dadID, 200)
+	mom.mustSee("API tokens", "No tokens.")
+	mom.mustNotSee("Create token")
+
+	// Revoke.
+	tokID := find(t, `/admin/tokens/([0-9a-f-]{36})/revoke`, func() string { mom.get("/admin/users/"+momID, 200); return mom.last }())
+	mom.post("/admin/tokens/"+tokID+"/revoke", url.Values{}, 200)
+	mom.mustSee("Token revoked.", "No tokens.")
+	if _, _, err := svc.AuthenticateToken(context.Background(), secret); err == nil {
+		t.Fatal("revoked token still authenticates")
+	}
+
+	// A kid can't reach any of it.
+	ava := newBrowser(t, ts)
+	ava.get("/login", 200)
+	ava.post("/login", url.Values{"username": {"ava"}, "secret": {"2468"}}, 200)
+	ava.post("/admin/users/"+momID+"/tokens", url.Values{"label": {"x"}}, 403)
+	ava.post("/admin/tokens/"+tokID+"/revoke", url.Values{}, 403)
+}

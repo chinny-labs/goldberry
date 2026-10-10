@@ -24,7 +24,7 @@ Open `https://<host>/setup`, paste the setup token, and create the first parent 
 
 > Sessions use `Secure` cookies, so put Goldberry behind a TLS reverse proxy (Caddy, Traefik, a Gateway). For a quick plain-HTTP trial on your LAN, set `GOLDBERRY_INSECURE_COOKIES: "true"` in `compose.yaml`.
 
-On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md) and [troubleshooting](docs/operations/troubleshooting.md).
+On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md), [API tokens](docs/operations/api-tokens.md) and [troubleshooting](docs/operations/troubleshooting.md).
 
 ## What it does
 
