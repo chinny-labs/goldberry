@@ -22,7 +22,7 @@ Give an AI tool `read` first. Add `money` only for a tool you trust to post entr
 
 ## Ownership and revoking
 
-- A token belongs to the parent who made it and acts as that parent: ledger entries and the account history name them.
+- A token belongs to the parent who made it and acts as that parent: ledger entries name them, and changes made through the API show in the account history of the person affected, as “Mom via <token label>”.
 - You can see and revoke your own tokens. Any parent can revoke another parent's from their page.
 - **Disabling a parent revokes their tokens for good**; enabling them again does not bring them back.
 - Each parent can hold 20 live tokens.

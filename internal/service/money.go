@@ -186,6 +186,9 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 			if prev[0].KidID != kid.ID {
 				return nil, false, ErrForbidden
 			}
+			if err := sameEntry(prev, in); err != nil {
+				return nil, false, err
+			}
 			return prev, true, nil
 		}
 	}
@@ -239,6 +242,26 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 		Jar: jarLabel(parts), Text: p.comment,
 	})
 	return out, false, err
+}
+
+// errKeyReused is a replay whose request differs from the original: the
+// caller reused a key by mistake, and quietly returning the old entries would
+// hide that.
+var errKeyReused = invalid("idempotency_key", "That key was already used for a different entry. Use a new key, or resend the original request.")
+
+// sameEntry checks that a replayed request matches what the key posted:
+// direction, total, and the jar when one was named. Comments aren't compared,
+// so a retry may fix a typo.
+func sameEntry(prev []store.LedgerEntry, in EntryInput) error {
+	var total int64
+	for _, e := range prev {
+		total += max(e.Amount, -e.Amount)
+	}
+	if total != in.Amount || (prev[0].Kind == store.KindWithdrawal) != in.Remove ||
+		(!in.UseSplit && in.JarID != "" && prev[0].JarID != in.JarID) {
+		return errKeyReused
+	}
+	return nil
 }
 
 // partKey derives each split part's idempotency key from the form's key.

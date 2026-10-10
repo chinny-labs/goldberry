@@ -591,7 +591,7 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	post := func(token string) *http.Response {
+	post := func(token string) int {
 		req, _ := http.NewRequest("POST", ts.URL+"/api/v1/kids/ava/entries", strings.NewReader(`{"amount": 250}`))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Idempotency-Key", "web-1")
@@ -599,14 +599,21 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { resp.Body.Close() })
-		return resp
+		defer resp.Body.Close()
+		return resp.StatusCode
 	}
-	if r := post(money); r.StatusCode != 201 {
-		t.Fatalf("POST with a money token: %d", r.StatusCode)
+	if got := post(money); got != 201 {
+		t.Fatalf("POST with a money token: %d", got)
 	}
-	if r := post(secret); r.StatusCode != 403 { // the read-only token
-		t.Fatalf("POST with a read token: %d", r.StatusCode)
+	// The kid's history says it was the API, and which token.
+	ava, err := svc.Store.GetUserByUsername(context.Background(), "ava")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mom.get("/admin/users/"+ava.ID, 200)
+	mom.mustSee("api.entry", "Mom via “m”")
+	if got := post(secret); got != 403 { // the read-only token
+		t.Fatalf("POST with a read token: %d", got)
 	}
 
 	// A session cookie is not a credential for the API.

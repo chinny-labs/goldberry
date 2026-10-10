@@ -681,7 +681,19 @@ func (s *Service) transfer(ctx context.Context, actor store.User, in TransferInp
 				if prev[0].KidID != kid.ID {
 					return ErrForbidden
 				}
-				out, *replay = prev, true
+				// priorEntries follows batches, not transfers: fetch both legs.
+				legs := make([]store.LedgerEntry, 0, 2)
+				for _, leg := range []string{"out", "in"} {
+					e, err := tx.GetLedgerEntryByKey(ctx, partKey(in.IdempotencyKey, leg, true))
+					if err != nil {
+						return err
+					}
+					legs = append(legs, e)
+				}
+				if err := sameTransfer(legs, in); err != nil {
+					return err
+				}
+				out, *replay = legs, true
 				return nil
 			}
 		}
@@ -729,6 +741,19 @@ func (s *Service) transfer(ctx context.Context, actor store.User, in TransferInp
 		return nil
 	})
 	return out, err
+}
+
+// sameTransfer checks a replayed transfer against the pair the key posted.
+func sameTransfer(prev []store.LedgerEntry, in TransferInput) error {
+	for _, e := range prev {
+		switch {
+		case e.Kind == store.KindTransferOut && (e.JarID != in.FromJarID || -e.Amount != in.Amount):
+			return errKeyReused
+		case e.Kind == store.KindTransferIn && (e.JarID != in.ToJarID || e.Amount != in.Amount):
+			return errKeyReused
+		}
+	}
+	return nil
 }
 
 // SplitSummary renders a split like "70 / 20 / 10" in jar order.

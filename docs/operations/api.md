@@ -48,11 +48,11 @@ Parents can already do all of this in the app, so a token can do no more than it
 
 ### Posting money safely
 
-- **Idempotency keys are required** on every posting (the `Idempotency-Key` header, or `idempotency_key` in the body; each item in a batch). Retrying with the same key posts nothing twice and returns the original entries with `"replayed": true` (HTTP 200 rather than 201). Pick a key that names the thing being paid, such as `allowance-2026-10-ava`, not a random one per attempt. A key reused with a different body returns the original; it is not an error.
+- **Idempotency keys are required** on every posting (the `Idempotency-Key` header, or `idempotency_key` in the body; each item in a batch). Retrying with the same key posts nothing twice and returns the original entries with `"replayed": true` (HTTP 200 rather than 201). Pick a key that names the thing being paid, such as `allowance-2026-10-ava`, not a random one per attempt. A key reused for a *different* payment (another amount, direction, jar or transfer) is refused with `422` on `idempotency_key`, so a mix-up can't hide; only the comment may differ.
 - **Dry run:** add `?dry_run=true` to an entry or a batch to run every check and get the entries that *would* post. Nothing is written and no key is used.
 - **Batches** take up to 100 entries, each `{"kid": "ava", "amount": 500, "idempotency_key": "…"}` plus the same fields as a single entry. They apply in order in one transaction, so a later removal sees an earlier deposit. One failure rejects the whole batch, and the error names the item: `{"error": {"code": "insufficient_funds", "message": "Item 3: Only $4.00 is available in Spend.", "detail": {"item": 2, "available": 400}}}` (`item` is zero-based).
 - Amounts are always positive; `"direction": "remove"` takes money out. Without `jar_id` the entry goes to the kid's first jar (Spend); `"use_split": true` splits a deposit by the kid's split.
-- Every API posting writes an audit row naming the token (see the parent's **Account history**).
+- Every API posting, reversal, transfer and request decision writes an audit row. It shows under **Account history** on the *kid's* page (People → the kid) as `api.entry · Mom via “Home Assistant”`: the parent who owns the token, and the token's label. The ledger entry itself names only the parent.
 
 ```sh
 # Pay two kids at once, safely retryable
