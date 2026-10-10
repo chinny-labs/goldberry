@@ -27,6 +27,7 @@ Kids are named by username (`ava`). Amounts are minor units (cents for USD).
 ## Money tools look before they leap
 
 - **They default to a dry run.** `post_entry`, `post_entries`, `reverse_entry` and `decide_request` show what would happen and change nothing until the tool is called again with `dry_run: false`. A good prompt is "show me what you'd post, and wait for my OK."
+- **Postings can be backdated.** Give `post_entry` or an item of `post_entries` an `effective_at` (`YYYY-MM-DD` or RFC 3339) to load money tracked elsewhere, like "ava's opening balance is $125 as of 2026-01-01." It can't be in the future. See [backdating](api.md#posting-money-safely).
 - **Postings need an `idempotency_key`.** Reusing a key retries safely: nothing posts twice. The tool descriptions tell the model to pick stable keys that name the payment.
 - **Batches are all-or-nothing** (up to 100 entries); an error names the item to fix.
 - **Everything is audited** with the token's label, under **Account history** on the *kid's* page (People → the kid): `api.entry · Mom via “Claude”`.

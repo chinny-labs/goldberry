@@ -291,3 +291,27 @@ func TestMCPWriteTools(t *testing.T) {
 		t.Fatal("a revoked token still calls tools")
 	}
 }
+
+func TestMCPBackdatedEntry(t *testing.T) {
+	e := newEnv(t)
+	e.tick = true
+	cs := e.session(t, "money")
+	var out struct {
+		DryRun  bool `json:"dry_run"`
+		Results []entriesResp
+	}
+	args := map[string]any{"kid": "ava", "amount": 4200, "comment": "Opening balance", "effective_at": "2026-02-01", "idempotency_key": "mcp-open"}
+	if msg := call(t, cs, "post_entry", args, &out); msg != "" || !out.DryRun || out.Results[0].Entries[0].EffectiveAt != "2026-02-01T05:00:00Z" {
+		t.Fatalf("dry run: %q %+v", msg, out)
+	}
+	if tot, _ := e.balance(t, "ava"); tot != 0 {
+		t.Fatalf("a dry run posted: %d", tot)
+	}
+	args["dry_run"] = false
+	if msg := call(t, cs, "post_entry", args, &out); msg != "" || out.Results[0].Entries[0].EffectiveAt != "2026-02-01T05:00:00Z" {
+		t.Fatalf("post: %q %+v", msg, out)
+	}
+	if msg := call(t, cs, "post_entry", map[string]any{"kid": "ava", "amount": 1, "effective_at": "2099-01-01", "idempotency_key": "mcp-future", "dry_run": false}, nil); !strings.Contains(msg, "future") {
+		t.Fatalf("future date: %q", msg)
+	}
+}

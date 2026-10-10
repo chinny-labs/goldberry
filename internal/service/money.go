@@ -56,7 +56,14 @@ type EntryInput struct {
 	Comment        string // the kid sees this
 	PrivateNote    string // admins only
 	IdempotencyKey string
+	// EffectiveAt dates the entry; zero means now. Set it to load money that
+	// was tracked elsewhere (an opening balance, a past allowance). It can't be
+	// in the future or before MinEffective. CreatedAt is always the real time.
+	EffectiveAt time.Time
 }
+
+// MinEffective is the earliest date an entry may be backdated to.
+var MinEffective = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // part is one jar's share of a deposit.
 type part struct {
@@ -166,6 +173,14 @@ func (s *Service) planEntry(ctx context.Context, actor store.User, in EntryInput
 	if err != nil {
 		return entryPlan{}, err
 	}
+	if !in.EffectiveAt.IsZero() {
+		if in.EffectiveAt.After(s.now()) {
+			return entryPlan{}, invalid("effective_at", "The date can't be in the future.")
+		}
+		if in.EffectiveAt.Before(MinEffective) {
+			return entryPlan{}, invalid("effective_at", "The date can't be before %s.", MinEffective.Format(time.DateOnly))
+		}
+	}
 	kid, err := getKid(ctx, s.Store, in.KidID)
 	if err != nil {
 		return entryPlan{}, err
@@ -205,6 +220,10 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 		parts = []part{{Jar: jar, Amount: in.Amount}}
 	}
 	now := s.now()
+	effective := now
+	if !in.EffectiveAt.IsZero() {
+		effective = in.EffectiveAt.UTC()
+	}
 	kind := notify.FundsAdded
 	if in.Remove {
 		jar := parts[0].Jar
@@ -223,7 +242,7 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 			ID: store.NewID(), KidID: kid.ID, JarID: pt.Jar.ID, Amount: pt.Amount, Kind: store.KindDeposit,
 			Comment: p.comment, PrivateNote: p.note, ActorID: actor.ID, BatchID: batch,
 			IdempotencyKey: partKey(in.IdempotencyKey, pt.Jar.ID, len(parts) > 1),
-			EffectiveAt:    now, CreatedAt: now, JarName: pt.Jar.Name, ActorName: actor.DisplayName,
+			EffectiveAt:    effective, CreatedAt: now, JarName: pt.Jar.Name, ActorName: actor.DisplayName,
 		}
 		if in.Remove {
 			e.Amount, e.Kind = -pt.Amount, store.KindWithdrawal
@@ -234,7 +253,7 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 		out = append(out, e)
 		ids = append(ids, e.ID)
 	}
-	if err := s.auditVia(ctx, tx, actor.ID, "api.entry", kid.ID, map[string]any{"entries": ids, "amount": in.Amount, "remove": in.Remove}); err != nil {
+	if err := s.auditVia(ctx, tx, actor.ID, "api.entry", kid.ID, auditEntry(ids, in, effective)); err != nil {
 		return nil, false, err
 	}
 	err = notify.Send(ctx, tx, now, []string{kid.ID}, kind, "", notify.Payload{
@@ -242,6 +261,15 @@ func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household
 		Jar: jarLabel(parts), Text: p.comment,
 	})
 	return out, false, err
+}
+
+// auditEntry is the audit detail for a posting; a backdated one records its date.
+func auditEntry(ids []string, in EntryInput, effective time.Time) map[string]any {
+	d := map[string]any{"entries": ids, "amount": in.Amount, "remove": in.Remove}
+	if !in.EffectiveAt.IsZero() {
+		d["effective_at"] = effective.Format(time.RFC3339)
+	}
+	return d
 }
 
 // errKeyReused is a replay whose request differs from the original: the
@@ -258,7 +286,8 @@ func sameEntry(prev []store.LedgerEntry, in EntryInput) error {
 		total += max(e.Amount, -e.Amount)
 	}
 	if total != in.Amount || (prev[0].Kind == store.KindWithdrawal) != in.Remove ||
-		(!in.UseSplit && in.JarID != "" && prev[0].JarID != in.JarID) {
+		(!in.UseSplit && in.JarID != "" && prev[0].JarID != in.JarID) ||
+		(!in.EffectiveAt.IsZero() && !prev[0].EffectiveAt.Equal(in.EffectiveAt)) {
 		return errKeyReused
 	}
 	return nil

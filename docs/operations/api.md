@@ -52,6 +52,7 @@ Parents can already do all of this in the app, so a token can do no more than it
 - **Dry run:** add `?dry_run=true` to an entry or a batch to run every check and get the entries that *would* post. Nothing is written and no key is used.
 - **Batches** take up to 100 entries, each `{"kid": "ava", "amount": 500, "idempotency_key": "…"}` plus the same fields as a single entry. They apply in order in one transaction, so a later removal sees an earlier deposit. One failure rejects the whole batch, and the error names the item: `{"error": {"code": "insufficient_funds", "message": "Item 3: Only $4.00 is available in Spend.", "detail": {"item": 2, "available": 400}}}` (`item` is zero-based).
 - Amounts are always positive; `"direction": "remove"` takes money out. Without `jar_id` the entry goes to the kid's first jar (Spend); `"use_split": true` splits a deposit by the kid's split.
+- **Backdating:** add `effective_at` (RFC 3339, or `YYYY-MM-DD` for midnight in the household's time zone) to an entry, or to any item in a batch, to date it in the past. Use it to load money tracked elsewhere, such as an opening balance or earlier allowance. The ledger and history show the `effective_at` date; `created_at` is always the real time. It can't be in the future or before 2000-01-01, and a retry must repeat the same date or it's refused as a reused key. Interest is paid once per month for the month just ended, so backdating earns no retroactive interest for months already closed; the balance does count from the new date from then on.
 - Every API posting, reversal, transfer and request decision writes an audit row. It shows under **Account history** on the *kid's* page (People → the kid) as `api.entry · Mom via “Home Assistant”`: the parent who owns the token, and the token's label. The ledger entry itself names only the parent.
 
 ```sh
@@ -61,4 +62,8 @@ curl -s -X POST $GB/api/v1/entries:batch -H "Authorization: Bearer $TOKEN" -H 'C
     {"kid": "ava", "amount": 1000, "comment": "October chores", "idempotency_key": "chores-2026-10-ava"},
     {"kid": "leo", "amount": 800,  "comment": "October chores", "idempotency_key": "chores-2026-10-leo"}
   ]}' | jq
+
+# Load an opening balance dated in the past
+curl -s -X POST $GB/api/v1/kids/ava/entries -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{
+  "amount": 12500, "comment": "Opening balance", "effective_at": "2026-01-01", "idempotency_key": "opening-ava"}' | jq
 ```

@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/chinny/goldberry/internal/service"
 )
@@ -230,10 +232,12 @@ type entryIn struct {
 	Comment        string `json:"comment"`
 	PrivateNote    string `json:"private_note"`
 	IdempotencyKey string `json:"idempotency_key"`
+	EffectiveAt    string `json:"effective_at"` // RFC3339 or YYYY-MM-DD; "" = now
 }
 
-// input turns the wire form into a service input for kidID.
-func (in entryIn) input(kidID, key string) (service.EntryInput, error) {
+// input turns the wire form into a service input for kidID. loc reads a bare
+// effective_at date (the household's time zone).
+func (in entryIn) input(kidID, key string, loc *time.Location) (service.EntryInput, error) {
 	var remove bool
 	switch in.Direction {
 	case "", "add":
@@ -242,8 +246,36 @@ func (in entryIn) input(kidID, key string) (service.EntryInput, error) {
 	default:
 		return service.EntryInput{}, &service.UserError{Field: "direction", Msg: "direction must be add or remove."}
 	}
+	at, err := parseEffective(in.EffectiveAt, loc)
+	if err != nil {
+		return service.EntryInput{}, err
+	}
 	return service.EntryInput{KidID: kidID, JarID: in.JarID, UseSplit: in.UseSplit, Amount: in.Amount, Remove: remove,
-		Comment: in.Comment, PrivateNote: in.PrivateNote, IdempotencyKey: key}, nil
+		Comment: in.Comment, PrivateNote: in.PrivateNote, IdempotencyKey: key, EffectiveAt: at}, nil
+}
+
+// parseEffective reads an RFC3339 time, or a YYYY-MM-DD date at midnight in
+// loc; "" is unset (now).
+func parseEffective(raw string, loc *time.Location) (time.Time, error) {
+	if raw == "" {
+		return time.Time{}, nil
+	}
+	if t, err := time.Parse(time.RFC3339, raw); err == nil {
+		return t, nil
+	}
+	if t, err := time.ParseInLocation(time.DateOnly, raw, loc); err == nil {
+		return t, nil
+	}
+	return time.Time{}, &service.UserError{Field: "effective_at", Msg: "effective_at must be an RFC3339 time or a YYYY-MM-DD date."}
+}
+
+// householdLoc is the household's time zone, for reading bare dates.
+func (a *API) householdLoc(ctx context.Context) (*time.Location, error) {
+	h, _, err := a.svc.Household(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return h.Location(), nil
 }
 
 type entriesOut struct {
@@ -263,7 +295,10 @@ func (a *API) entryPost(w http.ResponseWriter, r *http.Request, p *principal) {
 	key, err := headerKey(r, in.IdempotencyKey)
 	var ei service.EntryInput
 	if err == nil {
-		ei, err = in.input(k.ID, key)
+		var loc *time.Location
+		if loc, err = a.householdLoc(r.Context()); err == nil {
+			ei, err = in.input(k.ID, key, loc)
+		}
 	}
 	if err != nil {
 		a.fail(w, r, err)
@@ -304,6 +339,11 @@ func (a *API) entryBatch(w http.ResponseWriter, r *http.Request, p *principal) {
 	if !decode(w, r, &in) {
 		return
 	}
+	loc, err := a.householdLoc(r.Context())
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
 	items := make([]service.EntryInput, 0, len(in.Entries))
 	for i, e := range in.Entries {
 		fail := func(err error) { a.fail(w, r, &service.BatchError{Index: i, Err: err}) }
@@ -315,7 +355,7 @@ func (a *API) entryBatch(w http.ResponseWriter, r *http.Request, p *principal) {
 		key, err := cleanKey(e.IdempotencyKey)
 		var ei service.EntryInput
 		if err == nil {
-			ei, err = e.input(k.ID, key)
+			ei, err = e.input(k.ID, key, loc)
 		}
 		if err != nil {
 			fail(err)

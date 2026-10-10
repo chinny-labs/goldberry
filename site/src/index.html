@@ -121,7 +121,7 @@
     <div class="show">
       <div class="text">
         <h3>Scripts, Home Assistant and Claude</h3>
-        <p>Parents mint scoped tokens on their account page: <code>read</code> for a dashboard, <code>write</code> for jars and goals, <code>money</code> to post entries. The JSON API at <code>/api/v1</code> has atomic batches, dry runs and idempotency keys; the opt-in MCP server at <code>/mcp</code> lets AI tools use the same rules.</p>
+        <p>Parents mint scoped tokens on their account page: <code>read</code> for a dashboard, <code>write</code> for jars and goals, <code>money</code> to post entries. The JSON API at <code>/api/v1</code> has atomic batches, dry runs, idempotency keys and backdated entries (to pre-load balances tracked elsewhere); the opt-in MCP server at <code>/mcp</code> lets AI tools use the same rules.</p>
         <p><a href="docs/operations/api.html">JSON API</a> · <a href="docs/operations/mcp.html">MCP server</a> · <a href="docs/operations/api-tokens.html">Tokens</a></p>
       </div>
       <div class="card-shot"><img src="screenshots/api-tokens.png" width="992" height="1032" loading="lazy" alt="The API tokens card: a Claude token with read, write and money scopes and a read-only Home Assistant token"></div>
@@ -178,7 +178,7 @@ kubectl logs -n goldberry deploy/goldberry | grep -i "setup token"</code></pre>
       <li><a href="docs/operations/upgrade.html"><strong>Upgrade</strong><span>Moving to a new release and what migrations do.</span></a></li>
       <li><a href="docs/operations/backup-restore.html"><strong>Backup and restore</strong><span>Nightly snapshots, export and import, moving engines.</span></a></li>
       <li><a href="docs/operations/investing.html"><strong>Investing</strong><span>The price feed, the Invest jar and how earnings work.</span></a></li>
-      <li><a href="docs/operations/api.html"><strong>JSON API</strong><span>Endpoints, batches, dry runs and idempotency keys.</span></a></li>
+      <li><a href="docs/operations/api.html"><strong>JSON API</strong><span>Endpoints, batches, dry runs, idempotency keys and backdating.</span></a></li>
       <li><a href="docs/operations/mcp.html"><strong>MCP server</strong><span>Connect Claude and other AI tools.</span></a></li>
       <li><a href="docs/operations/troubleshooting.html"><strong>Troubleshooting</strong><span>Lockouts, cookies, proxies and the usual suspects.</span></a></li>
       <li><a href="docs/adr/index.html"><strong>Decisions</strong><span>The architecture decision records, one per choice.</span></a></li>

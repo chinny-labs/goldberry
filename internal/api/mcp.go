@@ -142,6 +142,7 @@ type postEntryIn struct {
 	Comment        string `json:"comment,omitempty" jsonschema:"the kid sees this"`
 	PrivateNote    string `json:"private_note,omitempty" jsonschema:"parents only"`
 	IdempotencyKey string `json:"idempotency_key" jsonschema:"a stable key for this payment"`
+	EffectiveAt    string `json:"effective_at,omitempty" jsonschema:"backdate it: YYYY-MM-DD (household time zone) or RFC3339; default now; not in the future"`
 	DryRun         *bool  `json:"dry_run,omitempty" jsonschema:"default true; false actually posts"`
 }
 
@@ -159,6 +160,7 @@ type postEntryItem struct {
 	Comment        string `json:"comment,omitempty"`
 	PrivateNote    string `json:"private_note,omitempty"`
 	IdempotencyKey string `json:"idempotency_key" jsonschema:"a stable key for this entry; unique within the batch"`
+	EffectiveAt    string `json:"effective_at,omitempty" jsonschema:"backdate it: YYYY-MM-DD (household time zone) or RFC3339; default now; not in the future"`
 }
 
 type reverseIn struct {
@@ -303,7 +305,7 @@ func (a *API) mcpServer(p *principal) *mcp.Server {
 	if service.HasScope(p.Token, service.ScopeMoney) {
 		mcp.AddTool(s, &mcp.Tool{Name: "post_entry", Description: "Add money to, or remove money from, one kid's jar." + moneyNote, Annotations: money},
 			func(ctx context.Context, _ *mcp.CallToolRequest, in postEntryIn) (*mcp.CallToolResult, previewOut, error) {
-				return a.mcpPost(ctxFor(ctx), p, []postEntryItem{{in.Kid, in.Amount, in.Direction, in.JarID, in.UseSplit, in.Comment, in.PrivateNote, in.IdempotencyKey}}, in.DryRun)
+				return a.mcpPost(ctxFor(ctx), p, []postEntryItem{{in.Kid, in.Amount, in.Direction, in.JarID, in.UseSplit, in.Comment, in.PrivateNote, in.IdempotencyKey, in.EffectiveAt}}, in.DryRun)
 			})
 		mcp.AddTool(s, &mcp.Tool{Name: "post_entries", Description: "Post up to 100 entries for one or more kids in one go. All succeed or none do; an error names the item to fix." + moneyNote, Annotations: money},
 			func(ctx context.Context, _ *mcp.CallToolRequest, in postEntriesIn) (*mcp.CallToolResult, previewOut, error) {
@@ -350,6 +352,10 @@ func (a *API) toolErrOrNil(err error) error {
 
 // mcpPost posts items as a batch; one item is a batch of one.
 func (a *API) mcpPost(ctx context.Context, p *principal, items []postEntryItem, dry *bool) (*mcp.CallToolResult, previewOut, error) {
+	loc, err := a.householdLoc(ctx)
+	if err != nil {
+		return nil, previewOut{}, a.toolError(err)
+	}
 	inputs := make([]service.EntryInput, 0, len(items))
 	for i, it := range items {
 		fail := func(err error) (*mcp.CallToolResult, previewOut, error) {
@@ -367,7 +373,7 @@ func (a *API) mcpPost(ctx context.Context, p *principal, items []postEntryItem, 
 			return fail(err)
 		}
 		ei, err := entryIn{Direction: it.Direction, Amount: it.Amount, JarID: it.JarID, UseSplit: it.UseSplit,
-			Comment: it.Comment, PrivateNote: it.PrivateNote}.input(k.ID, key)
+			Comment: it.Comment, PrivateNote: it.PrivateNote, EffectiveAt: it.EffectiveAt}.input(k.ID, key, loc)
 		if err != nil {
 			return fail(err)
 		}

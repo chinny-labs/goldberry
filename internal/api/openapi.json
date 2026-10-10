@@ -2728,6 +2728,10 @@
           "idempotency_key": {
             "type": "string",
             "maxLength": 128
+          },
+          "effective_at": {
+            "type": "string",
+            "description": "Backdate the entry: an RFC3339 time or a YYYY-MM-DD date (midnight, household time zone). Default: now. Not in the future, not before 2000-01-01. Use it to load money tracked elsewhere."
           }
         },
         "required": [
@@ -2774,6 +2778,10 @@
           "idempotency_key": {
             "type": "string",
             "maxLength": 128
+          },
+          "effective_at": {
+            "type": "string",
+            "description": "Backdate the entry: an RFC3339 time or a YYYY-MM-DD date (midnight, household time zone). Default: now. Not in the future, not before 2000-01-01. Use it to load money tracked elsewhere."
           }
         },
         "required": [
