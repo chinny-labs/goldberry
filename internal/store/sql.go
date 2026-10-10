@@ -377,7 +377,7 @@ func (x queries) RevokeUserSessions(ctx context.Context, userID string, at time.
 
 // --- API tokens ---------------------------------------------------------------
 
-const tokenCols = `id, token_hash, user_id, label, scopes, created_at, last_used_at, revoked_at`
+const tokenCols = `id, token_hash, user_id, label, scopes, created_at, last_used_at, revoked_at` //nolint:gosec // a column list, not a credential
 
 func scanAPIToken(sc interface{ Scan(...any) error }) (APIToken, error) {
 	var t APIToken

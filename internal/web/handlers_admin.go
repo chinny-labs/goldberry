@@ -290,6 +290,7 @@ type userData struct {
 	Names    map[string]string
 	PINLen   int
 	Tokens   []store.APIToken
+	Via      map[string]string // audit entry ID → the API token label behind it
 	// NewToken is a just-minted secret. It is rendered once, in the response
 	// to the mint POST, and never stored or put in a cookie.
 	NewToken string
@@ -333,6 +334,11 @@ func (s *Server) renderUser(w http.ResponseWriter, r *http.Request, c *reqCtx, i
 		s.serverError(w, r, err)
 		return
 	}
+	via, err := s.svc.AuditTokens(ctx, *c.User, audit)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	names := map[string]string{"": "System"}
 	if all, err := s.svc.Store.ListUsers(ctx, ""); err == nil {
 		for _, x := range all {
@@ -340,7 +346,7 @@ func (s *Server) renderUser(w http.ResponseWriter, r *http.Request, c *reqCtx, i
 		}
 	}
 	v := s.newView(w, r, u.DisplayName, userData{Target: u, Login: states[u.ID], Sessions: sessions, Audit: audit,
-		Names: names, PINLen: c.House.PINLength, Tokens: tokens, NewToken: newToken})
+		Names: names, PINLen: c.House.PINLength, Tokens: tokens, Via: via, NewToken: newToken})
 	v.Nav, v.Back = "people", "/admin/users"
 	if u.IsKid() {
 		v.Nav = "kid:" + u.ID

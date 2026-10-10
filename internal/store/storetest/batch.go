@@ -3,6 +3,8 @@ package storetest
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/chinny/goldberry/internal/service"
@@ -17,6 +19,7 @@ var batchTests = []struct {
 	{"BatchDryRun", testBatchDryRun},
 	{"BatchReplay", testBatchReplay},
 	{"BatchValidation", testBatchValidation},
+	{"BatchConcurrency", testBatchConcurrency},
 }
 
 func ledgerCount(t *testing.T, f *Fixture, kid store.User) int {
@@ -120,6 +123,18 @@ func testBatchReplay(t *testing.T, open Opener) {
 	}
 	f.wantJar(t, f.Ava, 700+210, 0)
 
+	// Reusing a key for a different payment is refused, so a mix-up can't hide.
+	var ue *service.UserError
+	_, err = f.Svc.PostEntries(ctx, f.Mom, []service.EntryInput{{KidID: f.Ava.ID, Amount: 701, IdempotencyKey: "r1"}}, false)
+	if !errors.As(err, &ue) || ue.Field != "idempotency_key" {
+		t.Fatalf("key reused for a different amount: %v", err)
+	}
+	_, err = f.Svc.PostEntries(ctx, f.Mom, []service.EntryInput{{KidID: f.Ava.ID, Amount: 700, Remove: true, IdempotencyKey: "r1"}}, false)
+	if !errors.As(err, &ue) {
+		t.Fatalf("key reused for the other direction: %v", err)
+	}
+	f.wantJar(t, f.Ava, 700+210, 0)
+
 	// A partly-new batch replays what posted and posts the rest.
 	mixed, err := f.Svc.PostEntries(ctx, f.Mom, append(items[:1:1], service.EntryInput{KidID: f.Leo.ID, Amount: 50, IdempotencyKey: "r3"}), false)
 	must(t, err)
@@ -174,4 +189,67 @@ func testBatchValidation(t *testing.T, open Opener) {
 	if _, err := f.Svc.PostEntries(ctx, f.Mom, []service.EntryInput{{KidID: f.Leo.ID, Amount: 5, IdempotencyKey: "own"}}, false); !errors.Is(err, service.ErrForbidden) {
 		t.Fatalf("a key reused for another kid: %v", err)
 	}
+}
+
+// testBatchConcurrency hammers TxLocked: batches over the same two kids in
+// opposite orders must neither deadlock nor lose an update, and concurrent
+// removals must never overdraw.
+func testBatchConcurrency(t *testing.T, open Opener) {
+	ctx := context.Background()
+	f := NewFixture(t, open)
+
+	const batches = 40
+	var wg sync.WaitGroup
+	errs := make(chan error, batches)
+	for i := 0; i < batches; i++ {
+		kids := []string{f.Ava.ID, f.Leo.ID}
+		if i%2 == 1 {
+			kids[0], kids[1] = kids[1], kids[0]
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := f.Svc.PostEntries(ctx, f.Mom, []service.EntryInput{
+				{KidID: kids[0], Amount: 100, IdempotencyKey: fmt.Sprintf("c%d-a", i)},
+				{KidID: kids[1], Amount: 100, IdempotencyKey: fmt.Sprintf("c%d-b", i)},
+			}, false)
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		must(t, err)
+	}
+	f.wantJar(t, f.Ava, batches*100, 0)
+	f.wantJar(t, f.Leo, batches*100, 0)
+
+	// 60 racing removals of 100 against 4000: exactly 40 may succeed.
+	jar := f.Jar(t, f.Ava)
+	var ok, refused int
+	var mu sync.Mutex
+	for i := 0; i < 60; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := f.Svc.PostEntries(ctx, f.Mom, []service.EntryInput{
+				{KidID: f.Ava.ID, JarID: jar.ID, Amount: 100, Remove: true, IdempotencyKey: fmt.Sprintf("rm%d", i)}}, false)
+			var ins *service.ErrInsufficient
+			mu.Lock()
+			defer mu.Unlock()
+			switch {
+			case err == nil:
+				ok++
+			case errors.As(err, &ins):
+				refused++
+			default:
+				t.Errorf("removal %d: %v", i, err)
+			}
+		}()
+	}
+	wg.Wait()
+	if ok != 40 || refused != 20 {
+		t.Fatalf("%d removals succeeded and %d were refused, want 40 and 20", ok, refused)
+	}
+	f.wantJar(t, f.Ava, 0, 0)
 }

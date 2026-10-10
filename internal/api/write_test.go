@@ -88,6 +88,22 @@ func TestPostEntry(t *testing.T) {
 	if tot, _ := e.balance(t, "ava"); tot != 500 {
 		t.Fatalf("balance %d after a replay", tot)
 	}
+	// A key reused for a different payment is an error, not a silent replay.
+	for name, body := range map[string]map[string]any{
+		"amount":    {"amount": 501},
+		"direction": {"amount": 500, "direction": "remove"},
+		"jar":       {"amount": 500, "jar_id": e.f.Jar(t, e.f.Ava).ID + "x"},
+	} {
+		e.want(422, e.callH("money", "POST", "/kids/ava/entries", body, key, &er), "key reused with another "+name)
+		if er.Error.Code != "invalid" || er.Error.Field != "idempotency_key" {
+			t.Fatalf("%s: %+v", name, er)
+		}
+	}
+	// Only the money and the direction count: a retry may fix the comment.
+	e.want(200, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 500, "comment": "dishes!"}, key, &out), "retry with a new comment")
+	if !out.Replayed {
+		t.Fatal("a comment-only change should still replay")
+	}
 	// The key can also ride in the body, but must agree with the header.
 	e.want(201, e.call("money", "POST", "/kids/ava/entries", map[string]any{"amount": 100, "idempotency_key": "body-key"}, &out), "key in body")
 	e.want(422, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 100, "idempotency_key": "other"}, key, &er), "key mismatch")
@@ -113,7 +129,7 @@ func TestPostEntry(t *testing.T) {
 	e.want(422, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 0}, hdr("z1"), &er), "zero")
 	e.want(422, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 5, "direction": "sideways"}, hdr("z2"), &er), "direction")
 	e.want(422, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 5, "jar_id": "nope"}, hdr("z3"), &er), "jar")
-	e.want(400, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 5, "ammount": 5}, hdr("z4"), &er), "unknown field")
+	e.want(400, e.callH("money", "POST", "/kids/ava/entries", map[string]any{"amount": 5, "amt": 5}, hdr("z4"), &er), "unknown field")
 	if er.Error.Code != "bad_request" {
 		t.Fatalf("%+v", er)
 	}
@@ -196,6 +212,13 @@ func TestBatch(t *testing.T) {
 	if a, _ := e.balance(t, "ava"); a != 1000 {
 		t.Fatalf("ava %d after retry", a)
 	}
+	// Reusing one item's key for a different amount fails the batch at that item.
+	changed := items()
+	changed["entries"].([]map[string]any)[1]["amount"] = 401
+	e.want(422, e.call("money", "POST", "/entries:batch", changed, &er), "batch key reused")
+	if er.Error.Field != "idempotency_key" || er.Error.Detail["item"].(float64) != 1 {
+		t.Fatalf("%+v", er)
+	}
 
 	// One bad item sinks the batch and says which.
 	bad := items(map[string]any{"kid": "ava", "amount": 999999, "direction": "remove", "idempotency_key": "w2-big"})
@@ -265,8 +288,12 @@ func TestReverseTransferDecide(t *testing.T) {
 		t.Fatalf("transfer %+v", out)
 	}
 	e.want(200, e.callH("money", "POST", "/kids/ava/transfers", tr, hdr("t1"), &out), "transfer replay")
-	if !out.Replayed {
-		t.Fatal("transfer replay not flagged")
+	if !out.Replayed || len(out.Entries) != 2 || out.Entries[0].Amount != -300 || out.Entries[1].Amount != 300 {
+		t.Fatalf("transfer replay %+v", out)
+	}
+	e.want(422, e.callH("money", "POST", "/kids/ava/transfers", map[string]any{"from_jar_id": jars.ID, "to_jar_id": save, "amount": 301}, hdr("t1"), &er), "transfer key reused")
+	if er.Error.Field != "idempotency_key" {
+		t.Fatalf("%+v", er)
 	}
 	e.want(422, e.callH("money", "POST", "/kids/ava/transfers", map[string]any{"from_jar_id": save, "to_jar_id": save, "amount": 1}, hdr("t2"), &er), "same jar")
 	e.want(422, e.callH("money", "POST", "/kids/ava/transfers", map[string]any{"from_jar_id": save, "to_jar_id": jars.ID, "amount": 99999}, hdr("t3"), &er), "overdraw")

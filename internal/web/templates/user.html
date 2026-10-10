@@ -92,7 +92,7 @@
 {{if .D.Audit}}
 <section class="stack">
   <h2>Account history</h2>
-  <ul class="list">{{range .D.Audit}}<li><div class="what"><strong>{{.Action}}</strong><span class="meta">{{index $v.D.Names .ActorID}} · {{$v.When .CreatedAt}}</span></div></li>{{end}}</ul>
+  <ul class="list">{{range .D.Audit}}<li><div class="what"><strong>{{.Action}}</strong><span class="meta">{{index $v.D.Names .ActorID}}{{with index $v.D.Via .ID}} via “{{.}}”{{end}} · {{$v.When .CreatedAt}}</span></div></li>{{end}}</ul>
 </section>
 {{end}}
 {{end}}

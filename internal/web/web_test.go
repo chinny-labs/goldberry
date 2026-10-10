@@ -557,7 +557,13 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	get := func(path, token string) *http.Response {
+	// reply is what a test needs from a response, with the body already closed.
+	type reply struct {
+		status  int
+		header  http.Header
+		cookies []*http.Cookie
+	}
+	get := func(path, token string) reply {
 		req, _ := http.NewRequest("GET", ts.URL+path, nil)
 		if token != "" {
 			req.Header.Set("Authorization", "Bearer "+token)
@@ -566,21 +572,21 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { resp.Body.Close() })
-		return resp
+		defer resp.Body.Close()
+		return reply{resp.StatusCode, resp.Header, resp.Cookies()}
 	}
 	ok := get("/api/v1/household", secret)
-	if ok.StatusCode != 200 || len(ok.Cookies()) != 0 {
-		t.Fatalf("household: %d, cookies %v", ok.StatusCode, ok.Cookies())
+	if ok.status != 200 || len(ok.cookies) != 0 {
+		t.Fatalf("household: %d, cookies %v", ok.status, ok.cookies)
 	}
-	if ok.Header.Get("X-Content-Type-Options") != "nosniff" {
+	if ok.header.Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatal("security headers missing on API responses")
 	}
-	if r := get("/api/v1/household", ""); r.StatusCode != 401 || r.Header.Get("WWW-Authenticate") == "" {
-		t.Fatalf("anonymous: %d", r.StatusCode)
+	if r := get("/api/v1/household", ""); r.status != 401 || r.header.Get("WWW-Authenticate") == "" {
+		t.Fatalf("anonymous: %d", r.status)
 	}
-	if r := get("/api/v1/openapi.json", ""); r.StatusCode != 200 {
-		t.Fatalf("spec: %d", r.StatusCode)
+	if r := get("/api/v1/openapi.json", ""); r.status != 200 {
+		t.Fatalf("spec: %d", r.status)
 	}
 	// Writes need no CSRF token either: the bearer token is the proof.
 	mom.post("/admin/users", url.Values{"role": {"kid"}, "display_name": {"Ava"}, "username": {"ava"}, "pin": {"2468"}}, 200)
@@ -588,7 +594,7 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	post := func(token string) *http.Response {
+	post := func(token string) int {
 		req, _ := http.NewRequest("POST", ts.URL+"/api/v1/kids/ava/entries", strings.NewReader(`{"amount": 250}`))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Idempotency-Key", "web-1")
@@ -596,14 +602,21 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { resp.Body.Close() })
-		return resp
+		defer resp.Body.Close()
+		return resp.StatusCode
 	}
-	if r := post(money); r.StatusCode != 201 {
-		t.Fatalf("POST with a money token: %d", r.StatusCode)
+	if got := post(money); got != 201 {
+		t.Fatalf("POST with a money token: %d", got)
 	}
-	if r := post(secret); r.StatusCode != 403 { // the read-only token
-		t.Fatalf("POST with a read token: %d", r.StatusCode)
+	// The kid's history says it was the API, and which token.
+	ava, err := svc.Store.GetUserByUsername(context.Background(), "ava")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mom.get("/admin/users/"+ava.ID, 200)
+	mom.mustSee("api.entry", "Mom via “m”")
+	if got := post(secret); got != 403 { // the read-only token
+		t.Fatalf("POST with a read token: %d", got)
 	}
 
 	// A session cookie is not a credential for the API.
