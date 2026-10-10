@@ -91,6 +91,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /admin/users/{id}/disable", s.admin(s.userDisable(true)))
 	mux.HandleFunc("POST /admin/users/{id}/enable", s.admin(s.userDisable(false)))
 	mux.HandleFunc("POST /admin/users/{id}/revoke", s.admin(s.userRevoke))
+	mux.HandleFunc("POST /admin/users/{id}/tokens", s.admin(s.tokenCreate))
+	mux.HandleFunc("POST /admin/tokens/{id}/revoke", s.admin(s.tokenRevoke))
 	mux.HandleFunc("GET /admin/kids/{id}/invest", s.admin(s.adminInvest))
 	mux.HandleFunc("POST /admin/orders/{id}/cancel", s.admin(s.adminOrderCancel))
 	mux.HandleFunc("POST /admin/payouts/{id}/pay", s.admin(s.adminPayEarnings))

@@ -56,8 +56,9 @@ func cols(spec string) []exportCol {
 }
 
 // exportTables lists every table worth keeping, parents before children.
-// Sessions and sign-in throttling are left out: they're transient, and a
-// restored install should make everyone sign in again.
+// Sessions, API tokens and sign-in throttling are left out: they're
+// credentials or transient, and a restored install should make everyone sign
+// in again and mint new tokens.
 var exportTables = []exportTable{
 	{"household", cols("id name currency timezone pin_length:i allow_negative:b request_expiry_days:i kid_picker_login:b created_at:t"), "id"},
 	{"users", cols("id role username display_name avatar password_hash pin_hash email disabled_at:t created_at:t"), "created_at, id"},
