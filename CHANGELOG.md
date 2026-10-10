@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/chinny/goldberry/compare/v1.0.0...v1.1.0) (2026-10-10)
+
+
+### Features
+
+* balance graph with preset and custom ranges ([#8](https://github.com/chinny/goldberry/issues/8)) ([52f77e7](https://github.com/chinny/goldberry/commit/52f77e7a9bf3dd2920d0246ff3e368d01e57d67f))
+* investing with an Invest jar at real market prices ([#9](https://github.com/chinny/goldberry/issues/9)) ([650fe62](https://github.com/chinny/goldberry/commit/650fe62440bd1fdcee71344270cb98350335775b))
+
 ## 1.0.0 (2026-10-08)
 
 
