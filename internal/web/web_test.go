@@ -28,6 +28,10 @@ func newServer(t *testing.T) *httptest.Server {
 }
 
 func newServerWithService(t *testing.T) (*httptest.Server, *service.Service) {
+	return newServerWithConfig(t, config.Config{InsecureCookies: true, Timezone: "UTC"})
+}
+
+func newServerWithConfig(t *testing.T, cfg config.Config) (*httptest.Server, *service.Service) {
 	t.Helper()
 	ctx := context.Background()
 	st, err := sqlite.Open(ctx, filepath.Join(t.TempDir(), "gb.db"), nil)
@@ -36,7 +40,6 @@ func newServerWithService(t *testing.T) (*httptest.Server, *service.Service) {
 	}
 	t.Cleanup(func() { st.Close() })
 	log := slog.New(slog.DiscardHandler)
-	cfg := config.Config{InsecureCookies: true, Timezone: "UTC"}
 	svc := service.New(st, log)
 	srv, err := New(ctx, svc, cfg, log, setupToken)
 	if err != nil {
@@ -612,5 +615,35 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 	resp2.Body.Close()
 	if resp2.StatusCode != 401 {
 		t.Fatalf("cookie-only request to the API: %d", resp2.StatusCode)
+	}
+}
+
+// TestMCPIsOptIn checks /mcp exists only when GOLDBERRY_MCP_ENABLED is on, and
+// then wants a bearer token like the API.
+func TestMCPIsOptIn(t *testing.T) {
+	status := func(ts *httptest.Server, token string) int {
+		req, _ := http.NewRequest("POST", ts.URL+"/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"ping"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	off, _ := newServerWithConfig(t, config.Config{InsecureCookies: true, Timezone: "UTC"})
+	if got := status(off, ""); got != 404 {
+		t.Fatalf("/mcp with MCP off: %d, want 404", got)
+	}
+	on, _ := newServerWithConfig(t, config.Config{InsecureCookies: true, Timezone: "UTC", MCPEnabled: true})
+	if got := status(on, ""); got != 401 {
+		t.Fatalf("/mcp with MCP on and no token: %d, want 401", got)
+	}
+	if got := status(on, "gb_nope"); got != 401 {
+		t.Fatalf("/mcp with a bad token: %d, want 401", got)
 	}
 }

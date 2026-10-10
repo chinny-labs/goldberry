@@ -27,6 +27,9 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{}))
 
 	mux.Handle(api.Prefix+"/", s.api)
+	if s.cfg.MCPEnabled {
+		mux.Handle(api.MCPPath, s.api.MCPHandler())
+	}
 
 	mux.HandleFunc("GET /setup", s.setupPage)
 	mux.HandleFunc("POST /setup", s.setupSubmit)

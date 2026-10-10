@@ -6,6 +6,10 @@
     "timezone": { "type": "string", "minLength": 1 },
     "insecureCookies": { "type": "boolean" },
     "logFormat": { "enum": ["json", "text"] },
+    "mcp": {
+      "type": "object",
+      "properties": { "enabled": { "type": "boolean" } }
+    },
     "backup": {
       "type": "object",
       "properties": {

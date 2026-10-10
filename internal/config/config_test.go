@@ -34,11 +34,12 @@ func TestFileSecretsAndProxies(t *testing.T) {
 		"GOLDBERRY_SECRET_KEY_FILE":  path,
 		"GOLDBERRY_TRUSTED_PROXIES":  "10.0.0.0/8, 192.168.1.1",
 		"GOLDBERRY_INSECURE_COOKIES": "true",
+		"GOLDBERRY_MCP_ENABLED":      "true",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.SecretKey) != 32 || len(c.TrustedProxies) != 2 || !c.InsecureCookies {
+	if len(c.SecretKey) != 32 || len(c.TrustedProxies) != 2 || !c.InsecureCookies || !c.MCPEnabled {
 		t.Fatalf("got %+v", c)
 	}
 }

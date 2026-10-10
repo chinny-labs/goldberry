@@ -129,6 +129,9 @@ func serve() error {
 	if cfg.InsecureCookies {
 		log.Warn("GOLDBERRY_INSECURE_COOKIES is on: session cookies work over plain HTTP. Use only for local testing.")
 	}
+	if cfg.MCPEnabled {
+		log.Info("MCP server is on at /mcp; it needs an API token")
+	}
 	if cfg.SecretKey == nil {
 		log.Info("GOLDBERRY_SECRET_KEY is not set; SMTP passwords can't be stored in the UI (email arrives in a later release)")
 	}

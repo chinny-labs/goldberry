@@ -127,3 +127,13 @@ func (s *Service) GoalByID(ctx context.Context, goalID string) (GoalView, error)
 	}
 	return GoalView{}, ErrNotFound
 }
+
+// EntryByID returns one ledger entry.
+func (s *Service) EntryByID(ctx context.Context, id string) (store.LedgerEntry, error) {
+	return s.Store.GetLedgerEntry(ctx, id)
+}
+
+// RequestByID returns one withdrawal request.
+func (s *Service) RequestByID(ctx context.Context, id string) (store.WithdrawalRequest, error) {
+	return s.Store.GetRequest(ctx, id)
+}

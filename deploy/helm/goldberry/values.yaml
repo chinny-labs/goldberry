@@ -20,6 +20,10 @@ baseURL: ""
 trustedProxies: ""
 # Drops the cookie Secure flag for plain-HTTP testing. Leave off behind TLS.
 insecureCookies: false
+
+# Serve the MCP server at /mcp for AI tools (docs/operations/mcp.md). API tokens still gate it.
+mcp:
+  enabled: false
 logFormat: json
 
 backup:
