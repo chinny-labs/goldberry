@@ -18,6 +18,8 @@ type entryOut struct {
 	ActorName      string  `json:"actor_name"`
 	IdempotencyKey *string `json:"idempotency_key"`
 	ReversesID     *string `json:"reverses_id"`
+	EffectiveAt    string  `json:"effective_at"`
+	CreatedAt      string  `json:"created_at"`
 }
 
 type entriesResp struct {
@@ -415,5 +417,64 @@ func TestJarsAndGoals(t *testing.T) {
 	e.want(200, e.call("read", "GET", "/kids/ava/goals", nil, &gl), "goals")
 	if len(gl.Items) != 0 {
 		t.Fatalf("archived goal still listed: %+v", gl)
+	}
+}
+
+func TestBackdatedEntry(t *testing.T) {
+	e := newEnv(t) // the clock reads 2026-03-07T15:00Z; the household is on New York time
+	e.tick = true
+	var er apiErr
+	var out entriesResp
+
+	// A bare date is midnight in the household's time zone; created_at stays real.
+	e.want(201, e.call("money", "POST", "/kids/ava/entries", map[string]any{
+		"amount": 2500, "comment": "Opening balance", "effective_at": "2026-03-01", "idempotency_key": "open-ava"}, &out), "backdate")
+	if got := out.Entries[0]; got.EffectiveAt != "2026-03-01T05:00:00Z" || got.CreatedAt != "2026-03-07T15:00:00Z" {
+		t.Fatalf("dates %+v", got)
+	}
+	if tot, _ := e.balance(t, "ava"); tot != 2500 {
+		t.Fatalf("balance %d", tot)
+	}
+
+	// An RFC3339 time is taken as given.
+	e.want(201, e.call("money", "POST", "/kids/ava/entries", map[string]any{
+		"amount": 100, "effective_at": "2026-02-14T12:30:00Z", "idempotency_key": "valentine"}, &out), "rfc3339")
+	if out.Entries[0].EffectiveAt != "2026-02-14T12:30:00Z" {
+		t.Fatalf("%+v", out.Entries[0])
+	}
+
+	// Retrying replays; the same key with another date is a mistake.
+	e.want(200, e.call("money", "POST", "/kids/ava/entries", map[string]any{
+		"amount": 2500, "effective_at": "2026-03-01", "idempotency_key": "open-ava"}, &out), "replay")
+	if !out.Replayed {
+		t.Fatalf("%+v", out)
+	}
+	e.want(422, e.call("money", "POST", "/kids/ava/entries", map[string]any{
+		"amount": 2500, "effective_at": "2026-03-02", "idempotency_key": "open-ava"}, &er), "key reused with another date")
+	if er.Error.Field != "idempotency_key" {
+		t.Fatalf("%+v", er)
+	}
+
+	// Bad dates change nothing.
+	for name, at := range map[string]string{"future": "2026-03-08", "ancient": "1999-12-31", "garbled": "last week"} {
+		e.want(422, e.call("money", "POST", "/kids/ava/entries", map[string]any{
+			"amount": 100, "effective_at": at, "idempotency_key": "bad-" + name}, &er), name)
+		if er.Error.Field != "effective_at" {
+			t.Fatalf("%s: %+v", name, er)
+		}
+	}
+	if tot, _ := e.balance(t, "ava"); tot != 2600 {
+		t.Fatalf("balance %d", tot)
+	}
+
+	// Dry runs and batches take it too.
+	e.want(200, e.call("money", "POST", "/entries:batch?dry_run=true", map[string]any{"entries": []map[string]any{
+		{"kid": "ava", "amount": 100, "effective_at": "2026-01-01", "idempotency_key": "b1"}}}, nil), "dry batch")
+	var b struct{ Results []entriesResp }
+	e.want(200, e.call("money", "POST", "/entries:batch", map[string]any{"entries": []map[string]any{
+		{"kid": "ava", "amount": 100, "effective_at": "2026-01-01", "idempotency_key": "b1"},
+		{"kid": "leo", "amount": 300, "effective_at": "2026-01-02", "idempotency_key": "b2"}}}, &b), "batch")
+	if b.Results[0].Entries[0].EffectiveAt != "2026-01-01T05:00:00Z" || b.Results[1].Entries[0].EffectiveAt != "2026-01-02T05:00:00Z" {
+		t.Fatalf("%+v", b)
 	}
 }
