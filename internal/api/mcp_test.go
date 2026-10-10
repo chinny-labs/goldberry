@@ -245,7 +245,7 @@ func TestMCPMoneyTools(t *testing.T) {
 	log, _ := e.f.Store.ListAudit(context.Background(), e.f.Ava.ID, 50)
 	var traced bool
 	for _, a := range log {
-		if a.Action == "api.entry" && strings.Contains(string(a.Detail), `"token"`) {
+		if a.Action == "api.entry" && strings.Contains(string(a.Detail), `"via_token"`) {
 			traced = true
 		}
 	}
