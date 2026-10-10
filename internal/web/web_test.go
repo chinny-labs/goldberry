@@ -525,3 +525,68 @@ func TestAPITokens(t *testing.T) {
 	ava.post("/admin/users/"+momID+"/tokens", url.Values{"label": {"x"}}, 403)
 	ava.post("/admin/tokens/"+tokID+"/revoke", url.Values{}, 403)
 }
+
+// TestAPIBypassesBrowserMachinery checks that /api/v1 is reached through the
+// full server with bearer tokens alone: no cookies, no CSRF, no redirects.
+func TestAPIBypassesBrowserMachinery(t *testing.T) {
+	ts, svc := newServerWithService(t)
+
+	// Before first-run setup the API answers in JSON, not with a redirect.
+	resp, err := http.Get(ts.URL + "/api/v1/kids")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 401 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
+		t.Fatalf("pre-setup: %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+
+	mom := newBrowser(t, ts)
+	mom.get("/setup", 200)
+	mom.post("/setup", url.Values{"setup_token": {setupToken}, "household_name": {"H"}, "currency": {"USD"}, "timezone": {"UTC"},
+		"display_name": {"Mom"}, "username": {"mom"}, "password": {"correct horse battery"}}, 200)
+	u, err := svc.Store.GetUserByUsername(context.Background(), "mom")
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, _, err := svc.CreateAPIToken(context.Background(), u, service.TokenInput{Label: "t"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	get := func(path, token string) *http.Response {
+		req, _ := http.NewRequest("GET", ts.URL+path, nil)
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		resp, err := http.DefaultClient.Do(req) // follows redirects, like a browser
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { resp.Body.Close() })
+		return resp
+	}
+	ok := get("/api/v1/household", secret)
+	if ok.StatusCode != 200 || len(ok.Cookies()) != 0 {
+		t.Fatalf("household: %d, cookies %v", ok.StatusCode, ok.Cookies())
+	}
+	if ok.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatal("security headers missing on API responses")
+	}
+	if r := get("/api/v1/household", ""); r.StatusCode != 401 || r.Header.Get("WWW-Authenticate") == "" {
+		t.Fatalf("anonymous: %d", r.StatusCode)
+	}
+	if r := get("/api/v1/openapi.json", ""); r.StatusCode != 200 {
+		t.Fatalf("spec: %d", r.StatusCode)
+	}
+	// A session cookie is not a credential for the API.
+	req, _ := http.NewRequest("GET", mom.base+"/api/v1/household", nil)
+	resp2, err := mom.c.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp2.Body.Close()
+	if resp2.StatusCode != 401 {
+		t.Fatalf("cookie-only request to the API: %d", resp2.StatusCode)
+	}
+}

@@ -23,6 +23,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 
+	"github.com/chinny/goldberry/internal/api"
 	"github.com/chinny/goldberry/internal/auth"
 	"github.com/chinny/goldberry/internal/config"
 	"github.com/chinny/goldberry/internal/money"
@@ -54,6 +55,7 @@ type Server struct {
 	csrfKey    []byte
 	pages      map[string]*template.Template
 	handler    http.Handler
+	api        *api.API
 	registry   *prometheus.Registry
 	requests   *prometheus.CounterVec
 	latency    *prometheus.HistogramVec
@@ -69,6 +71,7 @@ func New(ctx context.Context, svc *service.Service, cfg config.Config, log *slog
 	if s.pages, err = parseTemplates(); err != nil {
 		return nil, err
 	}
+	s.api = api.New(svc, api.Options{ClientIP: s.clientIP, Log: log})
 	s.registry = prometheus.NewRegistry()
 	s.registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	s.requests = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -190,7 +193,9 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "DENY")
 
-		if isOpenPath(r.URL.Path) {
+		// The API authenticates with bearer tokens: no cookies, no CSRF, and
+		// no first-run redirect (an unconfigured install has no tokens).
+		if isOpenPath(r.URL.Path) || strings.HasPrefix(r.URL.Path, api.Prefix+"/") {
 			next.ServeHTTP(sw, r)
 			return
 		}
