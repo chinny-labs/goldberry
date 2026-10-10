@@ -111,96 +111,134 @@ func splitParts(ctx context.Context, r store.Reader, kidID string, amount int64)
 // below zero is refused unless the household allows negative balances.
 // Reusing an idempotency key returns the original entries and posts nothing.
 func (s *Service) PostEntry(ctx context.Context, actor store.User, in EntryInput) ([]store.LedgerEntry, error) {
-	if err := requireAdmin(actor); err != nil {
-		return nil, err
-	}
-	if in.Amount <= 0 {
-		return nil, invalid("amount", "Enter an amount above zero.")
-	}
-	if in.Amount > money.MaxAmount {
-		return nil, invalid("amount", "%s", money.ErrTooLarge.Error())
-	}
-	if in.UseSplit && in.Remove {
-		return nil, invalid("jar", "Pick one jar to remove money from.")
-	}
-	comment, err := cleanText("comment", in.Comment, false)
+	out, _, err := s.PostEntryReplay(ctx, actor, in)
+	return out, err
+}
+
+// PostEntryReplay is PostEntry that also reports whether the idempotency key
+// had been used before, so nothing new was posted.
+func (s *Service) PostEntryReplay(ctx context.Context, actor store.User, in EntryInput) ([]store.LedgerEntry, bool, error) {
+	plan, err := s.planEntry(ctx, actor, in)
 	if err != nil {
-		return nil, err
-	}
-	note, err := cleanText("private_note", in.PrivateNote, false)
-	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	h, cur, err := s.Household(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	var out []store.LedgerEntry
+	var replay bool
+	err = s.Store.Tx(ctx, plan.kid.ID, func(tx store.Tx) (err error) {
+		out, replay, err = s.applyEntry(ctx, tx, h, cur, actor, plan)
+		return err
+	})
+	return out, replay, err
+}
+
+// entryPlan is an EntryInput that passed validation, with its kid loaded.
+type entryPlan struct {
+	in      EntryInput
+	comment string
+	note    string
+	kid     store.User
+}
+
+// planEntry validates everything about an entry that doesn't need a
+// transaction.
+func (s *Service) planEntry(ctx context.Context, actor store.User, in EntryInput) (entryPlan, error) {
+	if err := requireAdmin(actor); err != nil {
+		return entryPlan{}, err
+	}
+	if in.Amount <= 0 {
+		return entryPlan{}, invalid("amount", "Enter an amount above zero.")
+	}
+	if in.Amount > money.MaxAmount {
+		return entryPlan{}, invalid("amount", "%s", money.ErrTooLarge.Error())
+	}
+	if in.UseSplit && in.Remove {
+		return entryPlan{}, invalid("jar", "Pick one jar to remove money from.")
+	}
+	comment, err := cleanText("comment", in.Comment, false)
+	if err != nil {
+		return entryPlan{}, err
+	}
+	note, err := cleanText("private_note", in.PrivateNote, false)
+	if err != nil {
+		return entryPlan{}, err
 	}
 	kid, err := getKid(ctx, s.Store, in.KidID)
 	if err != nil {
-		return nil, err
+		return entryPlan{}, err
 	}
+	return entryPlan{in: in, comment: comment, note: note, kid: kid}, nil
+}
 
-	var out []store.LedgerEntry
-	err = s.Store.Tx(ctx, kid.ID, func(tx store.Tx) error {
-		if in.IdempotencyKey != "" {
-			prev, err := priorEntries(ctx, tx, in.IdempotencyKey)
-			if err != nil {
-				return err
-			}
-			if len(prev) > 0 {
-				if prev[0].KidID != kid.ID {
-					return ErrForbidden
-				}
-				out = prev
-				return nil
-			}
+// applyEntry posts one planned entry inside tx, which must hold the kid's
+// lock. replay reports that the idempotency key was already used.
+func (s *Service) applyEntry(ctx context.Context, tx store.Tx, h store.Household, cur money.Currency, actor store.User, p entryPlan) (out []store.LedgerEntry, replay bool, err error) {
+	in, kid := p.in, p.kid
+	if in.IdempotencyKey != "" {
+		prev, err := priorEntries(ctx, tx, in.IdempotencyKey)
+		if err != nil {
+			return nil, false, err
 		}
-		var parts []part
-		if in.UseSplit {
-			if parts, err = splitParts(ctx, tx, kid.ID, in.Amount); err != nil {
-				return err
+		if len(prev) > 0 {
+			if prev[0].KidID != kid.ID {
+				return nil, false, ErrForbidden
 			}
-		} else {
-			jar, err := jarFor(ctx, tx, kid.ID, in.JarID)
-			if err != nil {
-				return err
-			}
-			parts = []part{{Jar: jar, Amount: in.Amount}}
+			return prev, true, nil
 		}
-		now := s.now()
-		kind := notify.FundsAdded
+	}
+	var parts []part
+	if in.UseSplit {
+		if parts, err = splitParts(ctx, tx, kid.ID, in.Amount); err != nil {
+			return nil, false, err
+		}
+	} else {
+		jar, err := jarFor(ctx, tx, kid.ID, in.JarID)
+		if err != nil {
+			return nil, false, err
+		}
+		parts = []part{{Jar: jar, Amount: in.Amount}}
+	}
+	now := s.now()
+	kind := notify.FundsAdded
+	if in.Remove {
+		jar := parts[0].Jar
+		if !h.AllowNegative && jar.Available()-in.Amount < 0 {
+			return nil, false, &ErrInsufficient{Available: jar.Available(), Jar: jar.Name, Currency: cur}
+		}
+		kind = notify.FundsRemoved
+	}
+	batch := ""
+	if len(parts) > 1 {
+		batch = store.NewID()
+	}
+	var ids []string
+	for _, pt := range parts {
+		e := store.LedgerEntry{
+			ID: store.NewID(), KidID: kid.ID, JarID: pt.Jar.ID, Amount: pt.Amount, Kind: store.KindDeposit,
+			Comment: p.comment, PrivateNote: p.note, ActorID: actor.ID, BatchID: batch,
+			IdempotencyKey: partKey(in.IdempotencyKey, pt.Jar.ID, len(parts) > 1),
+			EffectiveAt:    now, CreatedAt: now, JarName: pt.Jar.Name, ActorName: actor.DisplayName,
+		}
 		if in.Remove {
-			jar := parts[0].Jar
-			if !h.AllowNegative && jar.Available()-in.Amount < 0 {
-				return &ErrInsufficient{Available: jar.Available(), Jar: jar.Name, Currency: cur}
-			}
-			kind = notify.FundsRemoved
+			e.Amount, e.Kind = -pt.Amount, store.KindWithdrawal
 		}
-		batch := ""
-		if len(parts) > 1 {
-			batch = store.NewID()
+		if _, err := tx.InsertLedgerEntry(ctx, e); err != nil {
+			return nil, false, err
 		}
-		for _, p := range parts {
-			e := store.LedgerEntry{
-				ID: store.NewID(), KidID: kid.ID, JarID: p.Jar.ID, Amount: p.Amount, Kind: store.KindDeposit,
-				Comment: comment, PrivateNote: note, ActorID: actor.ID, BatchID: batch,
-				IdempotencyKey: partKey(in.IdempotencyKey, p.Jar.ID, len(parts) > 1),
-				EffectiveAt:    now, CreatedAt: now, JarName: p.Jar.Name, ActorName: actor.DisplayName,
-			}
-			if in.Remove {
-				e.Amount, e.Kind = -p.Amount, store.KindWithdrawal
-			}
-			if _, err := tx.InsertLedgerEntry(ctx, e); err != nil {
-				return err
-			}
-			out = append(out, e)
-		}
-		return notify.Send(ctx, tx, now, []string{kid.ID}, kind, "", notify.Payload{
-			KidID: kid.ID, KidName: kid.DisplayName, ActorName: actor.DisplayName, Amount: in.Amount,
-			Jar: jarLabel(parts), Text: comment,
-		})
+		out = append(out, e)
+		ids = append(ids, e.ID)
+	}
+	if err := s.auditVia(ctx, tx, actor.ID, "api.entry", kid.ID, map[string]any{"entries": ids, "amount": in.Amount, "remove": in.Remove}); err != nil {
+		return nil, false, err
+	}
+	err = notify.Send(ctx, tx, now, []string{kid.ID}, kind, "", notify.Payload{
+		KidID: kid.ID, KidName: kid.DisplayName, ActorName: actor.DisplayName, Amount: in.Amount,
+		Jar: jarLabel(parts), Text: p.comment,
 	})
-	return out, err
+	return out, false, err
 }
 
 // partKey derives each split part's idempotency key from the form's key.
@@ -315,6 +353,9 @@ func (s *Service) Reverse(ctx context.Context, actor store.User, entryID string)
 		}
 		if total == 0 {
 			return nil // everything was already reversed
+		}
+		if err := s.auditVia(ctx, tx, actor.ID, "api.reverse", orig.KidID, map[string]any{"entry": orig.ID, "amount": total}); err != nil {
+			return err
 		}
 		jar := orig.JarName
 		if len(group) > 1 {
@@ -525,6 +566,9 @@ func (s *Service) DecideRequest(ctx context.Context, actor store.User, requestID
 					return err
 				}
 			}
+		}
+		if err := s.auditVia(ctx, tx, actor.ID, "api.decide_request", r.KidID, map[string]any{"request": r.ID, "status": r.Status, "approved": r.ApprovedAmount}); err != nil {
+			return err
 		}
 		if d.Approve {
 			if _, err := tx.InsertLedgerEntry(ctx, store.LedgerEntry{

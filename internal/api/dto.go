@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"time"
 
 	"github.com/chinny/goldberry/internal/money"
@@ -149,7 +150,7 @@ func entry(e store.LedgerEntry) entryDTO {
 	return entryDTO{ID: e.ID, KidID: e.KidID, JarID: e.JarID, JarName: e.JarName, Amount: e.Amount, Kind: string(e.Kind),
 		Comment: e.Comment, PrivateNote: e.PrivateNote, ActorID: strp(e.ActorID), ActorName: e.ActorName,
 		ReversesID: strp(e.ReversesID), ReversedByID: strp(e.ReversedByID), TransferID: strp(e.TransferID),
-		BatchID: strp(e.BatchID), RequestID: strp(e.RequestID), IdempotencyKey: strp(e.IdempotencyKey),
+		BatchID: strp(e.BatchID), RequestID: strp(e.RequestID), IdempotencyKey: strp(strings.TrimPrefix(e.IdempotencyKey, keyNamespace)),
 		EffectiveAt: ts(e.EffectiveAt), CreatedAt: ts(e.CreatedAt)}
 }
 

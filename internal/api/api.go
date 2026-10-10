@@ -86,7 +86,7 @@ func (a *API) handle(method, path, scope string, h func(http.ResponseWriter, *ht
 			tooMany(w, wait)
 			return
 		}
-		h(w, r, p)
+		h(w, r.WithContext(service.WithToken(r.Context(), p.Token.ID)), p)
 	})
 }
 
@@ -171,9 +171,18 @@ func (a *API) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	writeError(w, http.StatusInternalServerError, "internal", "Something went wrong. It's been logged.", "")
 }
 
-// fail maps a service error to a response. Expected errors carry their
-// message; anything else is a 500 with no detail.
-func (a *API) fail(w http.ResponseWriter, r *http.Request, err error) {
+// problem is an error response before it is written.
+type problem struct {
+	status int
+	code   string
+	msg    string
+	field  string
+	detail map[string]any
+}
+
+// classify maps a service error to a response. Expected errors carry their
+// message; anything else is internal and says nothing.
+func classify(err error) problem {
 	var (
 		ue  *service.UserError
 		ins *service.ErrInsufficient
@@ -181,21 +190,48 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, err error) {
 	)
 	switch {
 	case errors.As(err, &ue):
-		writeError(w, http.StatusUnprocessableEntity, "invalid", ue.Msg, ue.Field)
+		return problem{status: http.StatusUnprocessableEntity, code: "invalid", msg: ue.Msg, field: ue.Field}
 	case errors.As(err, &ins):
-		writeErrorDetail(w, http.StatusUnprocessableEntity, "insufficient_funds", ins.Error(), "amount",
-			map[string]any{"available": ins.Available, "jar": ins.Jar})
+		return problem{status: http.StatusUnprocessableEntity, code: "insufficient_funds", msg: ins.Error(), field: "amount",
+			detail: map[string]any{"available": ins.Available, "jar": ins.Jar}}
 	case errors.As(err, &dec):
-		writeError(w, http.StatusConflict, "already_decided", dec.Error(), "")
-	case errors.Is(err, service.ErrCannotReverse), errors.Is(err, service.ErrCannotReverseMove):
-		writeError(w, http.StatusConflict, "conflict", err.Error(), "")
+		return problem{status: http.StatusConflict, code: "already_decided", msg: dec.Error()}
+	case errors.Is(err, service.ErrCannotReverse), errors.Is(err, service.ErrCannotReverseMove), errors.Is(err, service.ErrCannotReverseInvest):
+		return problem{status: http.StatusConflict, code: "conflict", msg: err.Error()}
 	case errors.Is(err, service.ErrForbidden):
-		writeError(w, http.StatusForbidden, "forbidden", "You can't do that.", "")
+		return problem{status: http.StatusForbidden, code: "forbidden", msg: "You can't do that."}
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "not_found", "Not found.", "")
-	case errors.Is(err, context.Canceled):
-		// The client went away; nothing to say.
-	default:
-		a.serverError(w, r, err)
+		return problem{status: http.StatusNotFound, code: "not_found", msg: "Not found."}
 	}
+	return problem{status: http.StatusInternalServerError, code: "internal", msg: "Something went wrong. It's been logged."}
+}
+
+// fail writes the response for a service error. A failed batch item adds
+// its position, so the caller knows which one to fix.
+func (a *API) fail(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, context.Canceled) {
+		return // the client went away
+	}
+	item := -1
+	var be *service.BatchError
+	if errors.As(err, &be) {
+		item, err = be.Index, be.Err
+	}
+	p := classify(err)
+	if p.status == http.StatusInternalServerError {
+		a.serverError(w, r, err)
+		return
+	}
+	if item >= 0 {
+		if p.detail == nil {
+			p.detail = map[string]any{}
+		}
+		p.detail["item"] = item
+		p.msg = "Item " + itoa(item+1) + ": " + p.msg
+	}
+	if p.detail == nil {
+		writeError(w, p.status, p.code, p.msg, p.field)
+		return
+	}
+	writeErrorDetail(w, p.status, p.code, p.msg, p.field, p.detail)
 }

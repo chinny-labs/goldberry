@@ -632,6 +632,18 @@ type TransferInput struct {
 // kid may move only their own money and is subject to jar locks; admins
 // aren't.
 func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInput) ([]store.LedgerEntry, error) {
+	out, _, err := s.TransferReplay(ctx, actor, in)
+	return out, err
+}
+
+// TransferReplay is Transfer that also reports an idempotent replay.
+func (s *Service) TransferReplay(ctx context.Context, actor store.User, in TransferInput) ([]store.LedgerEntry, bool, error) {
+	var replay bool
+	out, err := s.transfer(ctx, actor, in, &replay)
+	return out, replay, err
+}
+
+func (s *Service) transfer(ctx context.Context, actor store.User, in TransferInput, replay *bool) ([]store.LedgerEntry, error) {
 	switch {
 	case actor.Disabled():
 		return nil, ErrForbidden
@@ -669,7 +681,7 @@ func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInp
 				if prev[0].KidID != kid.ID {
 					return ErrForbidden
 				}
-				out = prev
+				out, *replay = prev, true
 				return nil
 			}
 		}
@@ -704,6 +716,9 @@ func (s *Service) Transfer(ctx context.Context, actor store.User, in TransferInp
 			}
 		}
 		out = pair
+		if err := s.auditVia(ctx, tx, actor.ID, "api.transfer", kid.ID, map[string]any{"from": from.ID, "to": to.ID, "amount": in.Amount}); err != nil {
+			return err
+		}
 		if len(overridden) > 0 {
 			action := "once"
 			if in.RemoveLock {

@@ -152,3 +152,16 @@ func (s *Service) AuthenticateToken(ctx context.Context, secret string) (store.U
 	}
 	return u, t, nil
 }
+
+type tokenKey struct{}
+
+// WithToken marks ctx as an API call made with the given token, so audit rows
+// written during it name the token.
+func WithToken(ctx context.Context, tokenID string) context.Context {
+	return context.WithValue(ctx, tokenKey{}, tokenID)
+}
+
+func tokenFrom(ctx context.Context) string {
+	id, _ := ctx.Value(tokenKey{}).(string)
+	return id
+}

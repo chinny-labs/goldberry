@@ -579,6 +579,30 @@ func TestAPIBypassesBrowserMachinery(t *testing.T) {
 	if r := get("/api/v1/openapi.json", ""); r.StatusCode != 200 {
 		t.Fatalf("spec: %d", r.StatusCode)
 	}
+	// Writes need no CSRF token either: the bearer token is the proof.
+	mom.post("/admin/users", url.Values{"role": {"kid"}, "display_name": {"Ava"}, "username": {"ava"}, "pin": {"2468"}}, 200)
+	money, _, err := svc.CreateAPIToken(context.Background(), u, service.TokenInput{Label: "m", Scopes: []string{"money"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	post := func(token string) *http.Response {
+		req, _ := http.NewRequest("POST", ts.URL+"/api/v1/kids/ava/entries", strings.NewReader(`{"amount": 250}`))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Idempotency-Key", "web-1")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { resp.Body.Close() })
+		return resp
+	}
+	if r := post(money); r.StatusCode != 201 {
+		t.Fatalf("POST with a money token: %d", r.StatusCode)
+	}
+	if r := post(secret); r.StatusCode != 403 { // the read-only token
+		t.Fatalf("POST with a read token: %d", r.StatusCode)
+	}
+
 	// A session cookie is not a credential for the API.
 	req, _ := http.NewRequest("GET", mom.base+"/api/v1/household", nil)
 	resp2, err := mom.c.Do(req)
