@@ -10,7 +10,7 @@ Bulk work (backfilling entries, setting up several kids) and automation (scripts
 
 ## Decision
 
-- **Surface.** `/api/v1`, JSON in and out, a hand-written OpenAPI 3.1 spec in `docs/api/openapi.yaml`, also served at `/api/v1/openapi.json`. Handlers call `service` only, never the store.
+- **Surface.** `/api/v1`, JSON in and out, a hand-maintained OpenAPI 3.1 spec in `internal/api/openapi.json` (embedded and served at `/api/v1/openapi.json`; JSON so there is no YAML dependency). A test fails when the spec and the routes differ. Handlers call `service` only, never the store.
 - **v1 scope.** Kids, jars, ledger, goals, deposits and payouts, reversals, and bulk entries. Investing, schedules and notifications are later.
 - **Auth.** Bearer tokens (`Authorization: Bearer gb_...`), not session cookies, so no CSRF surface. Tokens are random 256-bit, stored as SHA-256 hashes (like sessions), shown once, revocable, with a label and last-used time.
 - **Ownership.** A token belongs to the admin (parent) account that minted it and acts as that user, so ledger entries and the audit log attribute to them (the audit log also records the token id). Each admin manages their own tokens; any admin can revoke another's from the user page, next to "revoke sessions". Disabling an admin disables their tokens. Tokens never outrank their owner: a token can do only what that admin can.
