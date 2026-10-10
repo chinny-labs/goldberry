@@ -28,4 +28,4 @@ goldberry export -o goldberry-dump.jsonl     # every table, typed, one JSON obje
 goldberry import goldberry-dump.jsonl        # into an empty database of either kind
 ```
 
-The dump is versioned, loads in one transaction (all or nothing), and refuses a database that already has users. Sign-in sessions aren't included, so everyone signs in again after an import. Use it to move between SQLite and Postgres, or as an extra, engine-independent backup.
+The dump is versioned, loads in one transaction (all or nothing), and refuses a database that already has users. Sign-in sessions and API tokens aren't included (both are credentials), so everyone signs in again and parents mint new API tokens after an import. Update any script or AI tool that held an old token. Use it to move between SQLite and Postgres, or as an extra, engine-independent backup.

@@ -6,6 +6,14 @@
 
 **"That form expired."** The CSRF token didn't match: usually a page left open across a restart or sign-out. Reload and try again.
 
+**The API says `401 unauthorized`.** The token is missing, mistyped, or revoked, or the parent who owns it was disabled (disabling a parent revokes their tokens for good). Make a new one under People → your name → API tokens, and send it as `Authorization: Bearer gb_…`.
+
+**The API says `429 rate_limited`.** Either a token went over about 10 requests a second, or the *address* sent 10 bad tokens in a minute and is blocked for the rest of that minute, which also turns away good tokens from the same address. Wait for `Retry-After`, and fix any script holding a stale token. Behind a proxy, set `GOLDBERRY_TRUSTED_PROXIES` so the address is the caller's.
+
+**`/mcp` returns 404.** The MCP server is off by default. Set `GOLDBERRY_MCP_ENABLED=true` (Helm: `mcp.enabled: true`) and restart. Once on, it answers 401 without a valid token, like the API.
+
+**An AI tool can't see the money tools.** Tools above a token's scopes are hidden. Give the token the `money` scope (or `write` for jars and goals), or make a new one.
+
 **A kid is locked out.** Ten wrong PINs hard-lock a kid account. A parent unlocks it (People → the kid → Unlock) or resets the PIN; nothing unlocks on a timer.
 
 **Every parent is locked out / forgot the password.** Run `goldberry admin reset-password <username>` in the container; it prints a new password.
