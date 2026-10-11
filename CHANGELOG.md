@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/chinny/goldberry/compare/v1.3.0...v1.4.0) (2026-10-11)
+
+
+### Features
+
+* **invest:** show what's inside a fund ([d78755a](https://github.com/chinny/goldberry/commit/d78755a33140d2b59ec286eff4f128835a977755))
+* **invest:** show what's inside a fund ([9d78eed](https://github.com/chinny/goldberry/commit/9d78eedb5ba1028c3ea14af3e5e4d5f520afc91e))
+
 ## [1.3.0](https://github.com/chinny/goldberry/compare/v1.2.0...v1.3.0) (2026-10-10)
 
 
