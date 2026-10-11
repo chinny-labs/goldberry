@@ -8,7 +8,8 @@ Kids can buy and sell real US stocks and funds (ETFs) at real market prices, usi
 2. Give it to Goldberry and restart:
    - **Compose:** `GOLDBERRY_FINNHUB_API_KEY=…` in `environment`, or `GOLDBERRY_FINNHUB_API_KEY_FILE` pointing at a secret (see `deploy/compose/compose.yaml`).
    - **Helm:** `--set investing.finnhubKey=…`, or put the key in your own Secret and set `investing.existingSecret` (and `investing.existingSecretKey`, default `finnhub-key`).
-3. In **Settings → Investing**, choose **Turn investing on**.
+3. Optional: set `GOLDBERRY_SEC_CONTACT` (Helm: `investing.secContact`) to your email to show **What's inside** on fund pages (see *Network and data*). The SEC asks every automated client to identify itself.
+4. In **Settings → Investing**, choose **Turn investing on**.
 
 Turning it on gives every kid an Invest jar. Kids still on the standard 70/20/10 split move to **50% Spend, 20% Save, 10% Give, 20% Invest**, so part of every deposit and allowance lands in Invest by itself. Kids with a split you've customised keep it; set their Invest share on their **Jars and split** page. Kids added while investing is on start with four jars.
 
@@ -37,6 +38,7 @@ Kids buy by **dollar amount**, so they get a slice of a share. Shares are tracke
 ## Network and data
 
 - The container needs outbound HTTPS to `finnhub.io`. If your cluster restricts egress, allow it.
+- Fund pages show **What's inside**: the ten biggest holdings and their share of the fund. That comes from the monthly N-PORT reports funds file with the SEC, so the container also needs outbound HTTPS to `www.sec.gov`, and `GOLDBERRY_SEC_CONTACT` must be set (your email goes in the User-Agent; the SEC blocks requests without one). The section is left out if the variable is unset, the SEC can't be reached, or it has no report for the fund (some, like SPY, don't file one). The numbers are as of the report date (a month-end, filed up to two months later), not today. Each fund is fetched at most once a day and kept in memory, and no key or setup is needed.
 - Quotes are cached for a minute while the market is open and 30 minutes while it's closed, so page views don't each cost an API call. The key is sent in a header (`X-Finnhub-Token`), not in the URL.
 - Every five minutes, the job records each investing kid's portfolio value for the day (one point a day, the last one wins) for the **How it's grown** graph.
 - `goldberry export` includes orders, earnings and snapshots. Cached quotes are left out and fetched again.

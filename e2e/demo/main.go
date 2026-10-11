@@ -64,6 +64,7 @@ func run(listen, dir string) error {
 	svc := service.New(st, log)
 	prices := newPrices()
 	svc.Market = prices.fake
+	svc.Holdings = prices.fake
 
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
@@ -117,6 +118,14 @@ func newPrices() *prices {
 		p.last[s.Symbol] = px
 		p.fake.Add(s, px, px)
 	}
+	// Illustrative contents, so fund pages show a "What's inside" in the screenshots.
+	top := func(count int, hs ...market.Holding) market.FundHoldings {
+		return market.FundHoldings{Count: count, Top: hs, AsOf: time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC)}
+	}
+	p.fake.SetHoldings("VTI", top(3600, market.Holding{Name: "Nvidia Corp.", Weight: 650}, market.Holding{Name: "Microsoft Corp.", Weight: 610},
+		market.Holding{Name: "Apple Inc.", Weight: 590}, market.Holding{Name: "Amazon.com Inc.", Weight: 360}, market.Holding{Name: "Alphabet Inc.", Weight: 330}))
+	p.fake.SetHoldings("VOO", top(503, market.Holding{Name: "Nvidia Corp.", Weight: 700}, market.Holding{Name: "Microsoft Corp.", Weight: 660},
+		market.Holding{Name: "Apple Inc.", Weight: 640}, market.Holding{Name: "Amazon.com Inc.", Weight: 390}, market.Holding{Name: "Meta Platforms Inc.", Weight: 280}))
 	p.fake.SetOpen(true)
 	return p
 }

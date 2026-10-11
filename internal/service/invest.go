@@ -58,7 +58,24 @@ type investCache struct {
 	status   market.Status
 	statusAt time.Time
 	snapAt   time.Time
+
+	holdings    map[string]holdingsEntry
+	holdingsRun map[string]chan struct{} // fetches under way, closed when done
 }
+
+// holdingsEntry is a fund's contents as last fetched, or the time a fetch failed.
+type holdingsEntry struct {
+	h     market.FundHoldings
+	ok    bool
+	fresh bool // fetched fine, so it lasts a day rather than a retry interval
+	tried time.Time
+}
+
+const (
+	holdingsTTL      = 24 * time.Hour   // funds report monthly; a day is plenty
+	holdingsRetry    = 15 * time.Minute // after a failure, before asking again
+	holdingsTopCount = 10
+)
 
 // --- unit math ---------------------------------------------------------------------
 
@@ -301,6 +318,77 @@ func (s *Service) Quote(ctx context.Context, symbol string) (q store.Quote, stal
 		return q, false, err
 	}
 	return q, false, nil
+}
+
+// FundHoldings is what a fund owns: its biggest holdings, cached for a day.
+// It reports false when there's no source, the source has nothing for the
+// fund, or it can't be reached (an older copy is used if there is one), so a
+// page can simply leave the section out.
+//
+// A report can take a while (a bond fund's runs to megabytes), so the fetch
+// runs on its own, outliving the page that asked: the page waits as long as
+// its context allows, and if that isn't long enough the next view finds it
+// cached.
+func (s *Service) FundHoldings(ctx context.Context, symbol string) (market.FundHoldings, bool) {
+	if s.Holdings == nil {
+		return market.FundHoldings{}, false
+	}
+	c := &s.invest
+	c.mu.Lock()
+	e, have := c.holdings[symbol]
+	if have {
+		wait := holdingsRetry
+		if e.fresh {
+			wait = holdingsTTL
+		}
+		if s.now().Sub(e.tried) < wait {
+			c.mu.Unlock()
+			return e.h, e.ok
+		}
+	}
+	done, running := c.holdingsRun[symbol]
+	if !running {
+		done = make(chan struct{})
+		if c.holdingsRun == nil {
+			c.holdingsRun = map[string]chan struct{}{}
+		}
+		c.holdingsRun[symbol] = done
+		go s.fetchHoldings(context.WithoutCancel(ctx), symbol, e, done)
+	}
+	c.mu.Unlock()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		return e.h, e.ok
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e = c.holdings[symbol]
+	return e.h, e.ok
+}
+
+// fetchHoldings asks the source and records the answer; on failure it keeps
+// the old copy (if any) and waits before trying again.
+func (s *Service) fetchHoldings(ctx context.Context, symbol string, old holdingsEntry, done chan struct{}) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	h, err := s.Holdings.Holdings(ctx, symbol, holdingsTopCount)
+	e := holdingsEntry{h: old.h, ok: old.ok, tried: s.now()}
+	if err == nil {
+		e = holdingsEntry{h: h, ok: true, fresh: true, tried: s.now()}
+	} else if !errors.Is(err, market.ErrNoHoldings) {
+		s.Log.Warn("fund holdings", "symbol", symbol, "err", err)
+	}
+	c := &s.invest
+	c.mu.Lock()
+	if c.holdings == nil {
+		c.holdings = map[string]holdingsEntry{}
+	}
+	c.holdings[symbol] = e
+	delete(c.holdingsRun, symbol)
+	c.mu.Unlock()
+	close(done)
 }
 
 // Security looks a symbol up, remembering its name.

@@ -105,8 +105,14 @@ func TestInvesting(t *testing.T) {
 	// After hours a buy waits; the kid can cancel it.
 	fake.SetOpen(false)
 	svc.Now = func() time.Time { return time.Now().Add(10 * time.Minute) }
+	fake.SetHoldings("VTI", market.FundHoldings{Count: 3500, AsOf: time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC),
+		Top: []market.Holding{{Name: "Apple Inc.", Weight: 650}, {Name: "Microsoft Corp.", Weight: 525}}})
+	svc.Holdings = fake
 	kid.get("/invest/stocks/VTI", 200)
-	kid.mustSee("The market is closed")
+	kid.mustSee("The market is closed", "What’s inside", "Apple Inc.", "6.50%", "5.25%", "and 3498 more", "June 30, 2026")
+	kid.get("/invest/stocks/AAPL", 200)
+	kid.mustNotSee("What’s inside") // only funds are baskets
+	kid.get("/invest/stocks/VTI", 200)
 	kid.post("/invest/orders", url.Values{"key": {"q1"}, "symbol": {"VTI"}, "side": {"buy"}, "amount": {"4"}}, 200)
 	kid.mustSee("is waiting", "Waiting for the market", "Buy $4.00 of VTI")
 	orders, err := svc.Store.ListOrders(ctx, store.OrderFilter{KidID: ava.ID, Status: store.OrderQueued})

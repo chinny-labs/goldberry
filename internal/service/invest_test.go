@@ -1,8 +1,13 @@
 package service
 
 import (
+	"context"
+	"errors"
+	"log/slog"
 	"testing"
 	"time"
+
+	"github.com/chinny/goldberry/internal/market"
 )
 
 func TestShareMath(t *testing.T) {
@@ -38,5 +43,54 @@ func TestMarketOpenAt(t *testing.T) {
 	got = marketOpenAt(time.Date(2026, 1, 6, 20, 0, 0, 0, time.UTC)).UTC()
 	if want := time.Date(2026, 1, 6, 14, 30, 0, 0, time.UTC); !got.Equal(want) {
 		t.Errorf("winter open %s, want %s", got, want)
+	}
+}
+
+// countingHoldings counts calls and can be made to fail.
+type countingHoldings struct {
+	calls int
+	err   error
+}
+
+func (c *countingHoldings) Holdings(context.Context, string, int) (market.FundHoldings, error) {
+	c.calls++
+	if c.err != nil {
+		return market.FundHoldings{}, c.err
+	}
+	return market.FundHoldings{Count: 2, Top: []market.Holding{{Name: "Apple Inc.", Weight: 650}}}, nil
+}
+
+func TestFundHoldingsCache(t *testing.T) {
+	src := &countingHoldings{}
+	now := time.Now()
+	s := &Service{Holdings: src, Log: slog.New(slog.DiscardHandler), Now: func() time.Time { return now }}
+
+	if h, ok := s.FundHoldings(context.Background(), "VTI"); !ok || h.Top[0].Name != "Apple Inc." {
+		t.Fatalf("first = %+v, %v", h, ok)
+	}
+	s.FundHoldings(context.Background(), "VTI")
+	if src.calls != 1 {
+		t.Errorf("a second look should come from the cache: %d calls", src.calls)
+	}
+
+	// A day later the source is down: the old copy is still shown, and not hammered.
+	now = now.Add(25 * time.Hour)
+	src.err = errors.New("down")
+	if _, ok := s.FundHoldings(context.Background(), "VTI"); !ok || src.calls != 2 {
+		t.Errorf("stale copy should be kept: ok=%v calls=%d", ok, src.calls)
+	}
+	s.FundHoldings(context.Background(), "VTI")
+	if src.calls != 2 {
+		t.Errorf("a failed fetch should back off: %d calls", src.calls)
+	}
+
+	// A fund with nothing known stays quiet.
+	src.err = market.ErrNoHoldings
+	if _, ok := s.FundHoldings(context.Background(), "ZZZ"); ok {
+		t.Error("unknown fund reported holdings")
+	}
+	s.Holdings = nil
+	if _, ok := s.FundHoldings(context.Background(), "VTI"); ok {
+		t.Error("no source should report nothing")
 	}
 }

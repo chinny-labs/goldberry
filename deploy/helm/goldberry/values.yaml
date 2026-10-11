@@ -40,8 +40,11 @@ secretKey:
 # Investing: kids buy and sell real US stocks and funds with their Invest jar.
 # Prices come from Finnhub (a free API key from finnhub.io). Without a key,
 # investing stays off. The pod needs HTTPS egress to finnhub.io.
+# secContact (an email) also shows what is inside each fund, from SEC filings;
+# the pod then needs HTTPS egress to www.sec.gov.
 investing:
   finnhubKey: ""
+  secContact: ""
   existingSecret: ""
   existingSecretKey: finnhub-key
 

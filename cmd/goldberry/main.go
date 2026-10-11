@@ -145,6 +145,12 @@ func serve() error {
 	if cfg.FinnhubKey != "" {
 		svc.Market = market.NewFinnhub(cfg.FinnhubKey)
 		log.Info("investing: market prices from Finnhub")
+		if cfg.SECContact != "" {
+			svc.Holdings = market.NewSEC(cfg.SECContact)
+			log.Info("investing: fund holdings from SEC filings")
+		} else {
+			log.Info("investing: set GOLDBERRY_SEC_CONTACT to an email to show what's inside each fund")
+		}
 	}
 
 	token := ""

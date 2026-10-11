@@ -68,6 +68,7 @@ Environment variables (or `/data/config.env`). Any variable can also be given as
 | `GOLDBERRY_BACKUP_RETAIN` | `14` | Snapshots to keep in `/data/backups` |
 | `GOLDBERRY_LOG_FORMAT` | `json` | `json` or `text` |
 | `GOLDBERRY_FINNHUB_API_KEY` | *(none)* | Free key from finnhub.io; turns on [investing](docs/operations/investing.md) |
+| `GOLDBERRY_SEC_CONTACT` | *(none)* | Your email, sent to the SEC with requests; shows what's inside each fund |
 | `TZ` | `UTC` | Default household time zone at setup |
 
 **Never put the SQLite file on NFS or SMB**: use a local or block-backed volume. Goldberry warns at startup if `/data` is a network filesystem.

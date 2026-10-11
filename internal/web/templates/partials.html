@@ -195,3 +195,6 @@
   {{end}}
 </ul>
 {{end}}
+
+{{define "inside"}}<ul class="list inside-list">{{range .Rows}}<li><span>{{.Name}}</span><span class="amt">{{.Pct}}</span></li>{{end}}</ul>
+{{if .More}}<p class="small muted">…and {{.More}} more, mostly smaller. {{if .AsOf}}As of {{.AsOf}}.{{end}}</p>{{else if .AsOf}}<p class="small muted">As of {{.AsOf}}.</p>{{end}}{{end}}
