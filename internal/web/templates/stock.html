@@ -24,6 +24,14 @@
   {{end}}
 </section>
 
+{{with $d.Inside}}
+<section class="card stack" aria-label="What’s inside">
+  <h2>What’s inside {{template "tip" (tip "fund")}}</h2>
+  <p class="small muted">A fund is a basket. Buying a slice of it means owning a tiny bit of everything in it. These are the biggest pieces, and how much of the basket each one is.</p>
+  {{template "inside" .}}
+</section>
+{{end}}
+
 {{if not $d.P.Status.Ready}}
 <p class="card empty-state">Investing is turned off right now.</p>
 {{else if not $d.P.HasJar}}

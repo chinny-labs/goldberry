@@ -26,6 +26,8 @@ type Service struct {
 	Now    func() time.Time
 	Log    *slog.Logger
 	Market market.Provider // nil: no price feed, so investing stays off
+	// Holdings says what funds contain; nil leaves "what's inside" off the fund pages.
+	Holdings market.HoldingsProvider
 
 	invest investCache
 }

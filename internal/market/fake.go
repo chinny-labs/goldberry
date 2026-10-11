@@ -10,12 +10,13 @@ import (
 // Fake is an in-memory Provider for tests and demos. Set prices with Set and
 // open or close the market with SetOpen.
 type Fake struct {
-	mu     sync.Mutex
-	open   bool
-	quotes map[string]Quote
-	secs   map[string]Security
-	Calls  int // Quote calls, to check caching
-	Err    error
+	mu       sync.Mutex
+	open     bool
+	quotes   map[string]Quote
+	secs     map[string]Security
+	holdings map[string]FundHoldings
+	Calls    int // Quote calls, to check caching
+	Err      error
 }
 
 // NewFake returns a closed market with no symbols.
@@ -93,4 +94,27 @@ func (f *Fake) Status(context.Context) (Status, error) {
 		return Status{Open: true, Session: "regular"}, nil
 	}
 	return Status{Session: "post-market"}, nil
+}
+
+// SetHoldings sets what a fund contains. Fake is also a HoldingsProvider.
+func (f *Fake) SetHoldings(symbol string, h FundHoldings) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.holdings == nil {
+		f.holdings = map[string]FundHoldings{}
+	}
+	f.holdings[symbol] = h
+}
+
+func (f *Fake) Holdings(_ context.Context, symbol string, n int) (FundHoldings, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	h, ok := f.holdings[symbol]
+	if !ok {
+		return FundHoldings{}, ErrNoHoldings
+	}
+	if len(h.Top) > n {
+		h.Top = h.Top[:n]
+	}
+	return h, nil
 }

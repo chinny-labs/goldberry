@@ -54,6 +54,7 @@
         <strong>{{if $d.ReadOnly}}{{.Name}}{{else}}<a href="/invest/stocks/{{.Symbol}}">{{.Name}}</a>{{end}}</strong>
         <span class="meta"><span class="kind-badge kind-{{.Kind}}">{{if eq .Kind "fund"}}Fund{{else}}Stock{{end}}</span> {{.Symbol}} · {{$v.Shares .Shares}} {{$v.ShareWord .Shares}}{{if .Reserved}} · {{$v.Shares .Reserved}} waiting to sell{{end}}{{if .Stale}} · old price{{end}}</span>
         <span class="meta">Paid {{$v.Money .Cost}}{{if .DayChange}} · today {{template "gain" (pair $v .DayChange)}}{{end}}</span>
+        {{with index $d.Inside .Symbol}}<details class="inside"><summary class="small">What’s inside</summary>{{template "inside" .}}</details>{{end}}
       </div>
       <div class="holding-num">
         <span class="amt">{{$v.Money .Value}}</span>

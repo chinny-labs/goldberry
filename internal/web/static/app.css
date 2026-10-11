@@ -488,3 +488,11 @@ form .row label.small { white-space: nowrap; }
 .glossary > div:target { border-color: var(--gb-indigo); border-width: 2px; }
 .glossary > div { scroll-margin-top: var(--gb-s6); }
 .tricks { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: var(--gb-s2); }
+
+/* A fund's biggest holdings: name on the left, share of the fund on the right. */
+.inside-list > li { justify-content: space-between; padding: 10px 0; }
+.inside-list .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.list details.inside { margin-top: var(--gb-s2); }
+.list details.inside > summary { cursor: pointer; color: var(--gb-ink-muted); }
+.list.inside-list { background: transparent; border: 0; border-radius: 0; padding: 0; }
+.list details.inside .inside-list { margin-top: var(--gb-s2); border-top: 1px solid var(--gb-sunk); }

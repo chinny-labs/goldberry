@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -23,7 +24,8 @@ type investData struct {
 	Funds    []pick
 	Stocks   []pick
 	Base     string
-	ReadOnly bool // a parent looking: no buy or sell
+	ReadOnly bool               // a parent looking: no buy or sell
+	Inside   map[string]*inside // what each owned fund holds, by symbol
 }
 
 func (s *Server) kidInvest(w http.ResponseWriter, r *http.Request, c *reqCtx) {
@@ -46,7 +48,12 @@ func (s *Server) renderInvest(w http.ResponseWriter, r *http.Request, kid store.
 		return
 	}
 	d := investData{Kid: kid, P: p, Trick: trickOfTheDay(time.Now().In(c.House.Location())), Funds: starterFunds,
-		Stocks: starterStocks, Base: base, ReadOnly: readOnly}
+		Stocks: starterStocks, Base: base, ReadOnly: readOnly, Inside: map[string]*inside{}}
+	for _, h := range p.Holdings {
+		if in := s.fundInside(ctx, h.Kind, h.Symbol); in != nil {
+			d.Inside[h.Symbol] = in
+		}
+	}
 	preset := r.URL.Query().Get("range")
 	rng, err := s.svc.ResolveRange(ctx, preset, "", "")
 	if err != nil {
@@ -93,6 +100,39 @@ type stockData struct {
 	Owns     bool
 	P        service.Portfolio
 	Key      string
+	Inside   *inside // what a fund holds; nil for stocks or when unknown
+}
+
+// inside is a fund's biggest holdings, ready to show.
+type inside struct {
+	Rows  []insideRow
+	More  int    // holdings not listed
+	AsOf  string // "June 30, 2026", or ""
+	Total int
+}
+
+type insideRow struct{ Name, Pct string }
+
+// fundInside looks up what a fund holds. It returns nil when the symbol is a
+// stock, or nothing is known, so templates can skip the section.
+func (s *Server) fundInside(ctx context.Context, kind, symbol string) *inside {
+	if kind != "fund" {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	h, ok := s.svc.FundHoldings(ctx, symbol)
+	if !ok {
+		return nil
+	}
+	in := &inside{Total: h.Count, More: h.Count - len(h.Top)}
+	for _, x := range h.Top {
+		in.Rows = append(in.Rows, insideRow{Name: x.Name, Pct: fmt.Sprintf("%d.%02d%%", x.Weight/100, x.Weight%100)})
+	}
+	if !h.AsOf.IsZero() {
+		in.AsOf = h.AsOf.Format("January 2, 2006")
+	}
+	return in
 }
 
 // Change is today's move per share, in micro-dollars.
@@ -145,7 +185,7 @@ func (s *Server) renderStock(w http.ResponseWriter, r *http.Request, c *reqCtx, 
 		s.serverError(w, r, err)
 		return
 	}
-	d := stockData{Sec: sec, P: p, Key: store.NewID()}
+	d := stockData{Sec: sec, P: p, Key: store.NewID(), Inside: s.fundInside(ctx, sec.Kind, sec.Symbol)}
 	if q, stale, err := s.svc.Quote(ctx, sec.Symbol); err == nil {
 		d.Quote, d.HasQuote, d.Stale = q, true, stale
 	}
