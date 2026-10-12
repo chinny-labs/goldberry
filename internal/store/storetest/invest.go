@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chinny/goldberry/internal/market"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/market"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 var investTests = []struct {

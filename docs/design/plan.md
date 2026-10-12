@@ -499,7 +499,7 @@ The kid routes sit at the root because a kid's home screen is the product; admin
 
 ### 12.1 The image
 
-- `ghcr.io/chinny/goldberry:<semver>` (plus `:<major>.<minor>` and `:latest`). Built multi-arch for `linux/amd64` and `linux/arm64`, so it runs on a Pi 5, an N100 box, or any K3s node.
+- `ghcr.io/chinny-labs/goldberry:<semver>` (plus `:<major>.<minor>` and `:latest`). Built multi-arch for `linux/amd64` and `linux/arm64`, so it runs on a Pi 5, an N100 box, or any K3s node.
 - Base image `gcr.io/distroless/static-debian12:nonroot`: no shell, UID 65532, roughly 15–20 MB in total.
 - Built with **`ko`**. It suits a pure-Go, `CGO_ENABLED=0` binary: no Dockerfile, reproducible output, and multi-arch in one command. A `Dockerfile` is kept too for anyone building locally.
 - Each release is signed with cosign (keyless, via GitHub OIDC) and gets an SBOM (syft) and SLSA provenance.
@@ -530,7 +530,7 @@ Configuration is env vars only, and a `/data/config.env` file is optional. Every
 ```yaml
 services:
   goldberry:
-    image: ghcr.io/chinny/goldberry:1
+    image: ghcr.io/chinny-labs/goldberry:1
     restart: unless-stopped
     ports: ["8080:8080"]          # or put it behind Caddy/Traefik for TLS
     environment:
@@ -561,7 +561,7 @@ secrets:
 
 ## 13. Repository & build
 
-One public AGPL-3.0 repo, chinny/goldberry, with the Go module, migrations, deploy files and docs together. Docs change in the same PR as the code. AGPL §13 applies because users reach the app over a network, so every page footer links to the source of the running version: the repo URL plus the commit, baked in at build time.
+One public AGPL-3.0 repo, chinny-labs/goldberry, with the Go module, migrations, deploy files and docs together. Docs change in the same PR as the code. AGPL §13 applies because users reach the app over a network, so every page footer links to the source of the running version: the repo URL plus the commit, baked in at build time.
 
 ### 13.1 Stack
 
@@ -680,13 +680,13 @@ Each phase ends with something the family can use. Phase 1 alone replaces a spre
 | Kids move money freely; locks restrict | Autonomy by default; restriction is an explicit, visible choice |
 | Self-locks are soft, admin locks are hard | Kids practise commitment without being trapped by it; parents keep authority |
 | Approve = handed over, not tracked separately | The app records decisions; it can't see cash change hands |
-| AGPL-3.0, in chinny | Modified hosted versions must share their source; matches Copperkeep |
+| AGPL-3.0, in chinny-labs | Modified hosted versions must share their source; matches Copperkeep |
 
 ### 15.3 Open questions
 
-- [x] **Name:** Goldberry, after Tom Bombadil's River-daughter. Repo `chinny/goldberry`, image `ghcr.io/chinny/goldberry`, env prefix `GOLDBERRY_*`.
+- [x] **Name:** Goldberry, after Tom Bombadil's River-daughter. Repo `chinny-labs/goldberry`, image `ghcr.io/chinny-labs/goldberry`, env prefix `GOLDBERRY_*`.
 - [x] **Licence:** AGPL-3.0.
-- [x] **Org:** `chinny`.
+- [x] **Org:** `chinny-labs` (moved from `chinny` on 2026-10-11; GitHub redirects the old repo URL).
 - [x] **Request expiry:** set by an admin per instance, default 14 days (§6).
 - [x] **Approve = handed over:** yes, and not tracked separately (§6).
 - [x] **Kid transfers:** free by default; admin locks are hard, self-locks are soft (§5.4).

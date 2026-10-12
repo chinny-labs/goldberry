@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chinny/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/service"
 )
 
 type goalFormData struct {

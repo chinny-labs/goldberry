@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // NotificationView is a rendered notification, with its request's live state

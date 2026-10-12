@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chinny/goldberry/internal/market"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/market"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // Investing (plan §7.6, ADR 0014). Kids buy and sell real US stocks and funds

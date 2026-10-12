@@ -7,8 +7,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/chinny/goldberry/internal/buildinfo"
-	"github.com/chinny/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/buildinfo"
+	"github.com/chinny-labs/goldberry/internal/service"
 )
 
 // MCPPath is where the MCP server is mounted.

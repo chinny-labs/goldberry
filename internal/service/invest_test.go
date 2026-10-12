@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chinny/goldberry/internal/market"
+	"github.com/chinny-labs/goldberry/internal/market"
 )
 
 func TestShareMath(t *testing.T) {

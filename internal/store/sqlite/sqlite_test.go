@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/sqlite"
-	"github.com/chinny/goldberry/internal/store/storetest"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/store/storetest"
 )
 
 func open(t *testing.T) store.Store {

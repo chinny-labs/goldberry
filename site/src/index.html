@@ -14,7 +14,7 @@
 <body>
 <header class="top">
   <a class="brand" href="index.html"><img src="icon.svg" alt="" width="32" height="32">goldberry</a>
-  <nav aria-label="Site"><a href="#features">Features</a><a href="docs/index.html">Docs</a><a href="https://github.com/chinny/goldberry">GitHub</a></nav>
+  <nav aria-label="Site"><a href="#features">Features</a><a href="docs/index.html">Docs</a><a href="https://github.com/chinny-labs/goldberry">GitHub</a></nav>
 </header>
 
 <main>
@@ -150,7 +150,7 @@
       <div>
         <h3>Docker Compose</h3>
 <pre><code>mkdir goldberry &amp;&amp; cd goldberry
-curl -fsSLO https://raw.githubusercontent.com/chinny/goldberry/main/deploy/compose/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/chinny-labs/goldberry/main/deploy/compose/compose.yaml
 openssl rand -base64 32 &gt; goldberry_key.txt
 docker compose up -d
 docker compose logs goldberry | grep -i "setup token"</code></pre>
@@ -158,7 +158,7 @@ docker compose logs goldberry | grep -i "setup token"</code></pre>
       </div>
       <div>
         <h3>Kubernetes (Helm)</h3>
-<pre><code>helm install goldberry oci://ghcr.io/chinny/charts/goldberry \
+<pre><code>helm install goldberry oci://ghcr.io/chinny-labs/charts/goldberry \
   --namespace goldberry --create-namespace
 kubectl logs -n goldberry deploy/goldberry | grep -i "setup token"</code></pre>
         <p>Signed multi-arch images (amd64, arm64) with SBOM and provenance. Nightly SQLite snapshots, a portable export between SQLite and Postgres, <code>/healthz</code>, <code>/readyz</code> and <code>/metrics</code>.</p>

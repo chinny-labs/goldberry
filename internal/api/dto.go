@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // Money is always an integer in minor units (cents for USD); the household's

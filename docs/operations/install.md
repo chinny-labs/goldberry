@@ -1,6 +1,6 @@
 # Install
 
-Goldberry is one container (`ghcr.io/chinny/goldberry`, linux/amd64 and linux/arm64) plus somewhere to keep its data: a volume for SQLite (the default), or an external Postgres.
+Goldberry is one container (`ghcr.io/chinny-labs/goldberry`, linux/amd64 and linux/arm64) plus somewhere to keep its data: a volume for SQLite (the default), or an external Postgres.
 
 Put it behind a TLS reverse proxy (Caddy, Traefik, a Cilium or Envoy Gateway). Sessions use `Secure` cookies, so plain HTTP only works with `GOLDBERRY_INSECURE_COOKIES=true`, which is for trying it out.
 
@@ -8,7 +8,7 @@ Put it behind a TLS reverse proxy (Caddy, Traefik, a Cilium or Envoy Gateway). S
 
 ```sh
 mkdir goldberry && cd goldberry
-curl -fsSLO https://raw.githubusercontent.com/chinny/goldberry/main/deploy/compose/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/chinny-labs/goldberry/main/deploy/compose/compose.yaml
 openssl rand -base64 32 > goldberry_key.txt
 docker compose up -d
 docker compose logs goldberry | grep -i "setup token"
@@ -19,7 +19,7 @@ Open `https://<your host>/setup`, paste the token, and create the first parent. 
 ## Kubernetes (Helm)
 
 ```sh
-helm install goldberry oci://ghcr.io/chinny/charts/goldberry --version 1.0.0 \
+helm install goldberry oci://ghcr.io/chinny-labs/charts/goldberry --version 1.0.0 \
   --namespace goldberry --create-namespace \
   --set timezone=America/New_York \
   --set baseURL=https://goldberry.home.example.com \

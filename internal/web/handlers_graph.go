@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 type graphLink struct {

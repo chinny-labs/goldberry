@@ -4,7 +4,7 @@ A self-hosted allowance tracker for kids. Parents add and remove money with a co
 
 One container, one volume: a Go binary serving server-rendered HTML (HTMX), with SQLite on the volume by default or Postgres if you point it at one. *Named for Goldberry, the River-daughter in The Lord of the Rings.*
 
-**[Website and docs →](https://chinny.github.io/goldberry/)**
+**[Website and docs →](https://chinny-labs.github.io/goldberry/)**
 
 ![The parent dashboard: two requests waiting for approval and a card per kid with their Spend, Save, Give and Invest jars](docs/screenshots/parent-dashboard.png)
 
@@ -20,7 +20,7 @@ One container, one volume: a Go binary serving server-rendered HTML (HTMX), with
 
 ```sh
 mkdir goldberry && cd goldberry
-curl -fsSLO https://raw.githubusercontent.com/chinny/goldberry/main/deploy/compose/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/chinny-labs/goldberry/main/deploy/compose/compose.yaml
 openssl rand -base64 32 > goldberry_key.txt
 docker compose up -d
 docker compose logs goldberry | grep -i "setup token"
@@ -30,7 +30,7 @@ Open `https://<host>/setup`, paste the setup token, and create the first parent 
 
 > Sessions use `Secure` cookies, so put Goldberry behind a TLS reverse proxy (Caddy, Traefik, a Gateway). For a quick plain-HTTP trial on your LAN, set `GOLDBERRY_INSECURE_COOKIES: "true"` in `compose.yaml`.
 
-On Kubernetes: `helm install goldberry oci://ghcr.io/chinny/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md), [JSON API](docs/operations/api.md), [MCP server](docs/operations/mcp.md), [API tokens](docs/operations/api-tokens.md) and [troubleshooting](docs/operations/troubleshooting.md).
+On Kubernetes: `helm install goldberry oci://ghcr.io/chinny-labs/charts/goldberry`. See [docs/operations](docs/operations/install.md) for install, [upgrade](docs/operations/upgrade.md), [backup and restore](docs/operations/backup-restore.md), [JSON API](docs/operations/api.md), [MCP server](docs/operations/mcp.md), [API tokens](docs/operations/api-tokens.md) and [troubleshooting](docs/operations/troubleshooting.md).
 
 ## What it does
 
@@ -97,13 +97,13 @@ just screenshots  # retake docs/screenshots from the demo household
 just site       # build the website (site/ plus docs/) into site/_site
 ```
 
-The screenshots come from `e2e/demo`, which seeds "The Riverbanks" through the real service layer on a moved clock, with made-up stock prices. Retake them with `just screenshots` when a screen changes. The website is `site/`: a landing page plus every page in `docs/operations`, `docs/adr` and the design plan, rendered from the Markdown and published to [GitHub Pages](https://chinny.github.io/goldberry/) by `.github/workflows/pages.yml` on every push to `main` that touches them. The first time, set **Settings → Pages → Source** to **GitHub Actions**.
+The screenshots come from `e2e/demo`, which seeds "The Riverbanks" through the real service layer on a moved clock, with made-up stock prices. Retake them with `just screenshots` when a screen changes. The website is `site/`: a landing page plus every page in `docs/operations`, `docs/adr` and the design plan, rendered from the Markdown and published to [GitHub Pages](https://chinny-labs.github.io/goldberry/) by `.github/workflows/pages.yml` on every push to `main` that touches them. The first time, set **Settings → Pages → Source** to **GitHub Actions**.
 
 Layout follows the plan (§13.2): `cmd/goldberry` (CLI), `internal/{config,money,allowance,auth,service,scheduler,notify,backup,store,web}`, `migrations/{sqlite,postgres}` (kept in lockstep), `deploy/{compose,helm/goldberry}`, `e2e/` (smoke test, demo household, screenshots), `site/` (the website), and `docs/` with the [design plan](docs/design/plan.md), the [design board](docs/design/README.md) and [ADRs](docs/adr/README.md).
 
 The service layer owns every money rule; handlers never touch the store. `internal/store/storetest` is the contract suite both database engines must pass — it is the real definition of "pluggable".
 
-Releases: merging the release-please PR tags `vX.Y.Z`, and the `release` workflow publishes signed multi-arch images (with SBOM and provenance) to `ghcr.io/chinny/goldberry` and the chart to `oci://ghcr.io/chinny/charts/goldberry` ([ADR 0012](docs/adr/0012-release-images-with-buildx.md)). Dependabot keeps Go modules, Actions and base images current. release-please needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** turned on; without it, run the `release` workflow by hand with the version.
+Releases: merging the release-please PR tags `vX.Y.Z`, and the `release` workflow publishes signed multi-arch images (with SBOM and provenance) to `ghcr.io/chinny-labs/goldberry` and the chart to `oci://ghcr.io/chinny-labs/charts/goldberry` ([ADR 0012](docs/adr/0012-release-images-with-buildx.md)). Dependabot keeps Go modules, Actions and base images current. release-please needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** turned on; without it, run the `release` workflow by hand with the version.
 
 ## Licence
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // MaxBatch caps the entries in one PostEntries call.

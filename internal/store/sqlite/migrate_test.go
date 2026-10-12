@@ -10,7 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 
-	"github.com/chinny/goldberry/migrations"
+	"github.com/chinny-labs/goldberry/migrations"
 )
 
 // TestInvestingMigrationKeepsData upgrades a populated v3 database through

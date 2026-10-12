@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/postgres"
-	"github.com/chinny/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/postgres"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
 )
 
 // Open opens and migrates the database named by url.

@@ -3,10 +3,10 @@
 #   docker compose up -d
 #   docker compose logs goldberry | grep -i "setup token"
 #   open https://<your host>/setup
-# To build from a checkout of the repo instead: docker build -t ghcr.io/chinny/goldberry:1 ../..
+# To build from a checkout of the repo instead: docker build -t ghcr.io/chinny-labs/goldberry:1 ../..
 services:
   goldberry:
-    image: ghcr.io/chinny/goldberry:1
+    image: ghcr.io/chinny-labs/goldberry:1
     restart: unless-stopped
     ports: ["8080:8080"]            # or put it behind Caddy/Traefik for TLS
     environment:

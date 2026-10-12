@@ -1,4 +1,4 @@
-module github.com/chinny/goldberry
+module github.com/chinny-labs/goldberry
 
 go 1.26.0
 

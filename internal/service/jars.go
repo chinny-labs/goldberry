@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/allowance"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/allowance"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // DefaultJars is every new kid's jars and split (plan §5.2).

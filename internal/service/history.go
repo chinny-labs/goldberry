@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // Graph ranges: the presets plus a custom pair of dates.

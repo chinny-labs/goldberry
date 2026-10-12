@@ -12,8 +12,8 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..");
 const out = join(here, "_site");
-const blob = "https://github.com/chinny/goldberry/blob/main/";
-const tree = "https://github.com/chinny/goldberry/tree/main/";
+const blob = "https://github.com/chinny-labs/goldberry/blob/main/";
+const tree = "https://github.com/chinny-labs/goldberry/tree/main/";
 
 // The docs on the site, in sidebar order. Paths are relative to the repo.
 const sections = [
@@ -127,7 +127,7 @@ function layout({ root, title, body, nav, current, src, toc }) {
 <body class="docs">
 <header class="top">
   <a class="brand" href="${root}index.html"><img src="${root}icon.svg" alt="" width="32" height="32">goldberry</a>
-  <nav aria-label="Site"><a href="${root}index.html#features">Features</a><a href="${root}docs/index.html" aria-current="page">Docs</a><a href="https://github.com/chinny/goldberry">GitHub</a></nav>
+  <nav aria-label="Site"><a href="${root}index.html#features">Features</a><a href="${root}docs/index.html" aria-current="page">Docs</a><a href="https://github.com/chinny-labs/goldberry">GitHub</a></nav>
 </header>
 <div class="docs-shell">
   <main class="prose">
@@ -146,7 +146,7 @@ ${footer(root)}
 
 const footer = (root) => `<footer class="foot">
   <p><img src="${root}icon.svg" alt="" width="20" height="20"> Goldberry is free software under the <a href="${blob}LICENSE">AGPL-3.0</a>. Named for Goldberry, the River-daughter in <i>The Lord of the Rings</i>.</p>
-  <p><a href="https://github.com/chinny/goldberry">Source</a> · <a href="https://github.com/chinny/goldberry/releases">Releases</a> · <a href="${root}docs/index.html">Docs</a></p>
+  <p><a href="https://github.com/chinny-labs/goldberry">Source</a> · <a href="https://github.com/chinny-labs/goldberry/releases">Releases</a> · <a href="${root}docs/index.html">Docs</a></p>
 </footer>`;
 
 await rm(out, { recursive: true, force: true });

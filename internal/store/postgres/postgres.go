@@ -18,8 +18,8 @@ import (
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/lock"
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/migrations"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/migrations"
 )
 
 // Open connects to Postgres and applies migrations under an advisory lock, so

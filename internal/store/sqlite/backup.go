@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // BackupPrefix names every snapshot file: goldberry-YYYYMMDD[-HHMMSS].db.
