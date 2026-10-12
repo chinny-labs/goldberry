@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/chinny-labs/goldberry/internal/service"
@@ -26,7 +27,11 @@ type graphData struct {
 	Show               string // carried by the custom-range form
 	Custom             bool
 	FromLabel, ToLabel string // "Sep 10", "Today"
+	Invest             *investSummary
 }
+
+// investSummary is the portfolio's latest worth against what was paid.
+type investSummary struct{ Worth, Paid, Gain int64 }
 
 // Single is the one line shown, or nil when every jar is.
 func (d graphData) Single() *service.HistorySeries {
@@ -79,6 +84,14 @@ func (s *Server) renderGraph(w http.ResponseWriter, r *http.Request, kid store.U
 		}
 		return t.In(loc).Format("Jan 2")
 	}
+	if h.Show == service.ShowInvest && len(h.Series) == 2 {
+		for i := range d.Chart.Lines {
+			d.Chart.Lines[i].Dots, d.Chart.Lines[i].Area = nil, "" // a point a day: the line says it
+		}
+		d.Chart.Lines[0].Class = "worth" // solid, against the dashed "what you paid"
+		d.Chart.Label = "Investment graph, " + rng.FromDate + " to " + rng.ToDate + ". Worth now and what you paid."
+		d.Invest = &investSummary{Worth: h.Series[0].End, Paid: h.Series[1].End, Gain: h.Series[0].End - h.Series[1].End}
+	}
 	d.FromLabel, d.ToLabel = day(rng.From), day(rng.To.Add(-time.Nanosecond))
 	if rng.ToDate == time.Now().In(loc).Format(time.DateOnly) {
 		d.ToLabel = "Today"
@@ -107,6 +120,10 @@ func (s *Server) renderGraph(w http.ResponseWriter, r *http.Request, kid store.U
 		for _, j := range h.Jars {
 			d.Shows = append(d.Shows, showLink(j.Name, j.ID, lineClass(service.HistorySeries{Kind: j.Kind})))
 		}
+	}
+
+	if slices.ContainsFunc(h.Jars, func(j store.Jar) bool { return j.Kind == store.JarInvest }) {
+		d.Shows = append(d.Shows, showLink("Investments", service.ShowInvest, "worth"))
 	}
 
 	title := "My money over time"

@@ -30,13 +30,26 @@
     <span class="graph-delta {{if gt .Change 0}}amt-credit{{else if lt .Change 0}}amt-debit{{else}}muted{{end}}">{{if .Change}}{{$v.Signed .Change}}{{else}}No change{{end}}</span>
   </div>
   {{end}}
+  {{with $d.Invest}}
+  <div class="graph-summary">
+    <div><span class="caption">You paid</span><div class="money-m">{{$v.Money .Paid}}</div></div>
+    <span class="graph-arrow" aria-hidden="true">→</span>
+    <div><span class="caption">Worth now</span><div class="money-m">{{$v.Money .Worth}}</div></div>
+    <span class="graph-delta {{if gt .Gain 0}}amt-credit{{else if lt .Gain 0}}amt-debit{{else}}muted{{end}}">{{if .Gain}}{{$v.Signed .Gain}}{{else}}No change{{end}}</span>
+  </div>
+  {{end}}
+  {{if and (eq $d.History.Show "invest") (not $d.History.Series)}}
+  <p class="empty-state">No investing history in these dates yet. A point is saved each day you own something.</p>
+  {{else}}
   {{template "chart" $d.Chart}}
+  {{end}}
   {{if $d.Chart.Legend}}
   <ul class="chart-legend" aria-label="Lines">
-    {{range $d.Chart.Lines}}<li>{{template "line-key" .Class}}<span>{{.Name}}</span> <strong class="num">{{$v.Money .End}}</strong> <span class="caption">({{$v.Signed .Delta}})</span></li>{{end}}
+    {{range $d.Chart.Lines}}<li>{{template "line-key" .Class}}<span>{{.Name}}</span> <strong class="num">{{$v.Money .End}}</strong>{{if not $d.Invest}} <span class="caption">({{$v.Signed .Delta}})</span>{{end}}</li>{{end}}
   </ul>
   {{end}}
-  <p class="caption">{{if $v.IsKid}}Each dot is a time your money changed. Tap one to see what happened.{{else}}Each dot is a change; tap one to find it in the list.{{end}}</p>
+  {{if $d.Invest}}<p class="caption">When the solid line is above the dashed one, your investments are worth more than you paid.</p>
+  {{else}}<p class="caption">{{if $v.IsKid}}Each dot is a time your money changed. Tap one to see what happened.{{else}}Each dot is a change; tap one to find it in the list.{{end}}</p>{{end}}
 </section>
 
 <section class="stack">

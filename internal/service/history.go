@@ -25,6 +25,8 @@ var RangePresets = []struct{ Key, Label string }{
 const (
 	ShowTotal = "total"
 	ShowJars  = "jars"
+	// ShowInvest is the portfolio: what it's worth against what was paid.
+	ShowInvest = "invest"
 )
 
 // HistoryRange is a resolved time window for a balance graph. From and To are
@@ -151,7 +153,15 @@ func (s *Service) BalanceHistory(ctx context.Context, kidID string, r HistoryRan
 	asc := slices.Clone(desc)
 	slices.Reverse(asc)
 
+	invest := slices.IndexFunc(out.Jars, func(j store.Jar) bool { return j.Kind == store.JarInvest })
 	switch {
+	case show == ShowInvest && invest >= 0:
+		ih, err := s.InvestHistory(ctx, kidID, r)
+		if err != nil {
+			return out, err
+		}
+		out.Series = ih.Series
+		out.Entries = filter(desc, onJar(out.Jars[invest].ID))
 	case show == ShowJars:
 		for _, j := range out.Jars {
 			out.Series = append(out.Series, buildSeries(j.ID, j.Name, j.Kind, before[j.ID], asc, onJar(j.ID)))

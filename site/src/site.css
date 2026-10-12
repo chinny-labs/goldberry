@@ -106,9 +106,11 @@ code { font-family: var(--gb-mono); font-size: 0.88em; }
   radial-gradient(circle at 16px 14px, var(--gb-line) 5px, transparent 6px),
   radial-gradient(circle at 34px 14px, var(--gb-line) 5px, transparent 6px),
   radial-gradient(circle at 52px 14px, var(--gb-line) 5px, transparent 6px), var(--gb-sunk); }
-.browser img { width: 100%; }
+/* Reserve each screenshot's height before its lazy load, or the page grows as
+   it scrolls and in-page jumps (#install) land short. */
+.browser img { width: 100%; aspect-ratio: 1440 / 900; }
 .phone { border-radius: 34px; padding: 8px; background: var(--gb-side); box-shadow: var(--gb-shadow); }
-.phone img { border-radius: 27px; width: 100%; }
+.phone img { border-radius: 27px; width: 100%; aspect-ratio: 780 / 1688; }
 .stage .phone { position: absolute; width: 30%; right: 0; bottom: 0; }
 @media (min-width: 960px) {
   .hero-grid { grid-template-columns: 5fr 7fr; }
@@ -140,8 +142,9 @@ section.alt .features li { background: var(--gb-ground); }
 .show .text p { color: var(--gb-ink-muted); }
 .show .text a { font-weight: 700; }
 .show .phone { max-width: 300px; margin: 0 auto; }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gb-s4); max-width: 480px; margin: 0 auto; }
+.pair { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gb-s4); max-width: 480px; margin: 0 auto; }
 .pair .phone { max-width: none; width: 100%; margin: 0; }
+.card-shot img { aspect-ratio: 992 / 1032; }
 .card-shot { max-width: 420px; margin: 0 auto; border-radius: var(--gb-r-lg); box-shadow: var(--gb-shadow); overflow: hidden; }
 @media (min-width: 860px) {
   .show { grid-template-columns: 1fr 1fr; gap: var(--gb-s7); }
