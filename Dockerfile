@@ -2,7 +2,7 @@
 # The release image (ADR 0012): built multi-arch with buildx. A static
 # CGO_ENABLED=0 binary on distroless, /data owned by the nonroot user, the
 # volume declared and Docker's HEALTHCHECK wired to `goldberry healthcheck`.
-FROM --platform=$BUILDPLATFORM golang:1.26 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27 AS build
 ARG TARGETOS TARGETARCH
 ARG VERSION=dev
 ARG COMMIT=
