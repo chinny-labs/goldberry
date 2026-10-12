@@ -40,7 +40,7 @@ Kids buy by **dollar amount**, so they get a slice of a share. Shares are tracke
 - The container needs outbound HTTPS to `finnhub.io`. If your cluster restricts egress, allow it.
 - Fund pages show **What's inside**: the ten biggest holdings and their share of the fund. That comes from the monthly N-PORT reports funds file with the SEC, so the container also needs outbound HTTPS to `www.sec.gov`, and `GOLDBERRY_SEC_CONTACT` must be set (your email goes in the User-Agent; the SEC blocks requests without one). The section is left out if the variable is unset, the SEC can't be reached, or it has no report for the fund (some, like SPY, don't file one). The numbers are as of the report date (a month-end, filed up to two months later), not today. Each fund is fetched at most once a day and kept in memory, and no key or setup is needed.
 - Quotes are cached for a minute while the market is open and 30 minutes while it's closed, so page views don't each cost an API call. The key is sent in a header (`X-Finnhub-Token`), not in the URL.
-- Every five minutes, the job records each investing kid's portfolio value for the day (one point a day, the last one wins) for the **How it's grown** graph.
+- Every five minutes, the job records each investing kid's portfolio value for the day (one point a day, the last one wins) for the **How it's grown** graph, which also shows as **Investments** on the kid's and parent's money graph.
 - `goldberry export` includes orders, earnings and snapshots. Cached quotes are left out and fetched again.
 
 ## Turning it off

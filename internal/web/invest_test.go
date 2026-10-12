@@ -75,6 +75,15 @@ func TestInvesting(t *testing.T) {
 	kid.mustSee("Only $3.00 is available in Invest.")
 	kid.post("/invest/orders", url.Values{"key": {"k3"}, "symbol": {"AAPL"}, "side": {"buy"}, "amount": {"lots"}}, 422)
 
+	// Her graph gets an Investments view: what she paid against what it's worth.
+	if _, err := svc.Snapshot(ctx); err != nil {
+		t.Fatal(err)
+	}
+	kid.get("/graph?show=invest", 200)
+	kid.mustSee("Investments", `aria-current="page">`, "You paid", "Worth now", "$5.00", "line-worth")
+	parent.get("/admin/kids/"+ava.ID+"/graph?show=invest", 200)
+	parent.mustSee("Ava’s money over time", "Worth now")
+
 	// AAPL jumps to $280; she sells it all for $7: $5 back now, $2 owed.
 	fake.Set("AAPL", 280*market.Micro)
 	svc.Now = func() time.Time { return time.Now().Add(5 * time.Minute) } // past the quote cache
