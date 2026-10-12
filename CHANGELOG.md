@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/chinny-labs/goldberry/compare/v1.4.0...v1.4.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* move to the chinny-labs org ([56d8c11](https://github.com/chinny-labs/goldberry/commit/56d8c118be37598bebd3943b7776450b771b9d02))
+* move to the chinny-labs org ([90a5363](https://github.com/chinny-labs/goldberry/commit/90a53639b9c020340348240e3d71bfbd7971f7e5))
+
 ## [1.4.0](https://github.com/chinny/goldberry/compare/v1.3.0...v1.4.0) (2026-10-11)
 
 
