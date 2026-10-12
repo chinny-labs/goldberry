@@ -4,9 +4,9 @@ description: Self-hosted allowance tracker for kids. One container; SQLite on a 
 type: application
 version: 1.4.0 # x-release-please-version
 appVersion: "1.4.0" # x-release-please-version
-home: https://github.com/chinny/goldberry
+home: https://github.com/chinny-labs/goldberry
 sources:
-  - https://github.com/chinny/goldberry
+  - https://github.com/chinny-labs/goldberry
 keywords: [allowance, family, finance, self-hosted]
 annotations:
   licenses: AGPL-3.0-only

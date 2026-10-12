@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/auth"
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/auth"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // Session lifetimes (plan §4.1).

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // A balance graph is SVG drawn on the server, so it works without JS and

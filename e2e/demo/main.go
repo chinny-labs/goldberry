@@ -20,12 +20,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chinny/goldberry/internal/config"
-	"github.com/chinny/goldberry/internal/market"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/sqlite"
-	"github.com/chinny/goldberry/internal/web"
+	"github.com/chinny-labs/goldberry/internal/config"
+	"github.com/chinny-labs/goldberry/internal/market"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/web"
 )
 
 const (

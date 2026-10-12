@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // KidSummary is a kid with their money totals, for lists.

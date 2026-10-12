@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chinny/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/service"
 )
 
 // TestSpecMatchesRoutes keeps the OpenAPI document honest: every route the

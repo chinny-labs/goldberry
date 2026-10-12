@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
 )
 
 // Nightly is the scheduler job.

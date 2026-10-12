@@ -11,7 +11,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
-      -ldflags "-s -w -X github.com/chinny/goldberry/internal/buildinfo.Version=${VERSION} -X github.com/chinny/goldberry/internal/buildinfo.Commit=${COMMIT}" \
+      -ldflags "-s -w -X github.com/chinny-labs/goldberry/internal/buildinfo.Version=${VERSION} -X github.com/chinny-labs/goldberry/internal/buildinfo.Commit=${COMMIT}" \
       -o /out/goldberry ./cmd/goldberry \
  && mkdir -p /out/data
 
@@ -19,7 +19,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="goldberry" \
       org.opencontainers.image.description="Self-hosted allowance tracker for kids" \
-      org.opencontainers.image.source="https://github.com/chinny/goldberry" \
+      org.opencontainers.image.source="https://github.com/chinny-labs/goldberry" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.version="${VERSION}"
 COPY --from=build /out/goldberry /usr/local/bin/goldberry

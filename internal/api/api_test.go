@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chinny/goldberry/internal/api"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/sqlite"
-	"github.com/chinny/goldberry/internal/store/storetest"
+	"github.com/chinny-labs/goldberry/internal/api"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/store/storetest"
 )
 
 // env is a household behind a running API.

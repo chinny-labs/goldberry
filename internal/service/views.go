@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // KidView is everything a kid's home or an admin's kid page shows.

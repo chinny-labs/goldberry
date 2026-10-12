@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/chinny/goldberry/internal/allowance"
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/allowance"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // CatchUpLimit caps how many missed allowances post after downtime (plan §7.2).

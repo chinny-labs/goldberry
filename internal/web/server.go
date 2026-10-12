@@ -23,12 +23,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 
-	"github.com/chinny/goldberry/internal/api"
-	"github.com/chinny/goldberry/internal/auth"
-	"github.com/chinny/goldberry/internal/config"
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/api"
+	"github.com/chinny-labs/goldberry/internal/auth"
+	"github.com/chinny-labs/goldberry/internal/config"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 //go:embed templates/*.html

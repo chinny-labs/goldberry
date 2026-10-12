@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 func (s *Server) adminHome(w http.ResponseWriter, r *http.Request, c *reqCtx) {

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // ErrInsufficient is returned when available money would go below zero.

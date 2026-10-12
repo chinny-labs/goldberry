@@ -9,7 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/chinny/goldberry/internal/api"
+	"github.com/chinny-labs/goldberry/internal/api"
 )
 
 func (s *Server) routes() http.Handler {

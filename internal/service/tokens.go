@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/chinny/goldberry/internal/auth"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/auth"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // API token scopes (ADR 0015). Scopes are separate grants: money does not

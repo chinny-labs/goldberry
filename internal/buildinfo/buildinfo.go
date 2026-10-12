@@ -2,8 +2,8 @@
 //
 // Set them with -ldflags, e.g.
 //
-//	-X github.com/chinny/goldberry/internal/buildinfo.Version=1.2.3
-//	-X github.com/chinny/goldberry/internal/buildinfo.Commit=<sha>
+//	-X github.com/chinny-labs/goldberry/internal/buildinfo.Version=1.2.3
+//	-X github.com/chinny-labs/goldberry/internal/buildinfo.Commit=<sha>
 //
 // When unset, Commit falls back to the VCS revision Go embeds in the binary.
 package buildinfo
@@ -11,7 +11,7 @@ package buildinfo
 import "runtime/debug"
 
 // Repo is the public source repository. Every page links to it (AGPL-3.0 §13).
-const Repo = "https://github.com/chinny/goldberry"
+const Repo = "https://github.com/chinny-labs/goldberry"
 
 var (
 	Version = "dev"

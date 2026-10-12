@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chinny/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/service"
 )
 
 var tokenTests = []struct {

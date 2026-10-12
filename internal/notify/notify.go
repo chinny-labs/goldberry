@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chinny/goldberry/internal/money"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/money"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // Kinds of notification. The string is stored, so never rename one.

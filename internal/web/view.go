@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinny/goldberry/internal/buildinfo"
-	"github.com/chinny/goldberry/internal/notify"
-	"github.com/chinny/goldberry/internal/service"
-	"github.com/chinny/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/buildinfo"
+	"github.com/chinny-labs/goldberry/internal/notify"
+	"github.com/chinny-labs/goldberry/internal/service"
+	"github.com/chinny-labs/goldberry/internal/store"
 )
 
 // view is the data every page template gets.

@@ -20,8 +20,8 @@ import (
 	"github.com/pressly/goose/v3/database"
 	_ "modernc.org/sqlite" // registers the "sqlite" driver
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/migrations"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/migrations"
 )
 
 // Pragmas applied to every connection (plan §9).

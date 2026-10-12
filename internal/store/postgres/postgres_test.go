@@ -14,10 +14,10 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/chinny/goldberry/internal/store"
-	"github.com/chinny/goldberry/internal/store/postgres"
-	"github.com/chinny/goldberry/internal/store/sqlite"
-	"github.com/chinny/goldberry/internal/store/storetest"
+	"github.com/chinny-labs/goldberry/internal/store"
+	"github.com/chinny-labs/goldberry/internal/store/postgres"
+	"github.com/chinny-labs/goldberry/internal/store/sqlite"
+	"github.com/chinny-labs/goldberry/internal/store/storetest"
 )
 
 // GOLDBERRY_TEST_POSTGRES_URL points at a server where the test user may

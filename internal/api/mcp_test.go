@@ -10,7 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/chinny/goldberry/internal/api"
+	"github.com/chinny-labs/goldberry/internal/api"
 )
 
 type bearerTransport struct{ token string }
