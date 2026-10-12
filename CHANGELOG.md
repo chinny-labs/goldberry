@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/chinny-labs/goldberry/compare/v1.4.1...v1.5.0) (2026-10-12)
+
+
+### Features
+
+* **graph:** show investment performance on the money graph ([f30987d](https://github.com/chinny-labs/goldberry/commit/f30987d47a441f91251f38a7745fd19b4309cd61))
+* investment performance on the graph view; fix site install link ([a5a1e28](https://github.com/chinny-labs/goldberry/commit/a5a1e28eefb9e5c364ff10727d822d41ad67bdaf))
+
+
+### Bug Fixes
+
+* **site:** keep 'Install in 60 seconds' from landing short ([fa31fd5](https://github.com/chinny-labs/goldberry/commit/fa31fd58d1445ffcf0494c112f5431ca681adf4e))
+
 ## [1.4.1](https://github.com/chinny-labs/goldberry/compare/v1.4.0...v1.4.1) (2026-10-12)
 
 
